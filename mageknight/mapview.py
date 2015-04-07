@@ -56,7 +56,7 @@ class MapModel(QtWidgets.QGraphicsScene):
         # Debug: Create some stuff
         self.map.addShieldToken('arythea', hexcoords.HexCoords(1,3))
         self.map.addEnemy(enemies.Enemy(enemies.EnemyType['city'], 'altem_mages'), hexcoords.HexCoords(1,1))
-        self.map.addEnemy(enemies.Enemy(enemies.EnemyType['city'], 'altem_guardians'), hexcoords.HexCoords(1,1))
+        self.map.addEnemy(enemies.Enemy(enemies.EnemyType['city'], 'altem_guardsmen'), hexcoords.HexCoords(1,1))
         self.map.addPerson('norowas', hexcoords.HexCoords(0,2))
         self.map.addPerson('arythea', hexcoords.HexCoords(1,1))
         self.map.addPerson('goldyx', hexcoords.HexCoords(2, 2))
