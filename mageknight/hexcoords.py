@@ -120,7 +120,7 @@ class HexCoords:
             return guess
         # Use the neighbor with the nearest center.
         # Do NOT search for a neighbor which 'contains' the point, because at the borders there might
-        # exist points for which all neighbor.contains is False for all neighbors.
+        # exist points for which neighbor.contains is False for all neighbors.
         nearest = None
         minimalDistance = float("inf")
         neighbors = guess.neighbors()
@@ -142,4 +142,3 @@ def _fractionalHex(point):
     """Return fractional hex coordinates for the given point."""
     # Invert the transformation that is used in HexCoord.center.
     return (point.x()/(2*ALTITUDE) - 1/(3*SIDE) * point.y(), -2/(3*SIDE) * point.y())
-
