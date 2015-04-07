@@ -29,9 +29,17 @@ class MainWindow(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Mage Knight")
+        from mageknight import match
+        self.match = match.Match()
+        
         layout = QtWidgets.QHBoxLayout(self)
-        from mageknight import mapview
-        self.mapView = mapview.MapView(self)
-        layout.addWidget(self.mapView)
+        leftLayout = QtWidgets.QVBoxLayout(self)
+        layout.addLayout(leftLayout)
+        
+        from mageknight import topbar, mapview
+        self.topBar = topbar.TopBar(self.match)
+        leftLayout.addWidget(self.topBar)
+        self.mapView = mapview.MapView(self, self.match)
+        leftLayout.addWidget(self.mapView, 1)
         
         self.resize(1000, 700)

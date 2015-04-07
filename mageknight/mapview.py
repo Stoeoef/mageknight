@@ -27,9 +27,9 @@ from mageknight import map, hexcoords, utils, enemies
 
 
 class MapView(QtWidgets.QGraphicsView):
-    def __init__(self, parent):
+    def __init__(self, parent, match):
         super().__init__(parent)
-        self.setScene(MapModel(parent))
+        self.setScene(MapModel(parent, match))
         self.scale(0.5, 0.5)
         self.setBackgroundBrush(Qt.black)
         
@@ -42,9 +42,9 @@ class MapView(QtWidgets.QGraphicsView):
 
 
 class MapModel(QtWidgets.QGraphicsScene):
-    def __init__(self, parent): # parent is necessary or segfaults occur
-        super().__init__(parent)
-        self.map = map.Map(map.MapShape.wedge)
+    def __init__(self, parent, match):
+        super().__init__(parent) # parent is necessary or segfaults occur
+        self.map = match.map
         self._enemyItems = {}
         self._personItems = {}
         self.map.tileAdded.connect(self._tileAdded)
@@ -198,7 +198,8 @@ class TileItem(QtWidgets.QGraphicsPixmapItem):
         
 
 class EnemyItem(QtWidgets.QGraphicsPixmapItem):
-    """A QGraphicsItem that displays an enemy token."""
+    """A QGraphicsItem that displays an enemy token. *enemy* may also be an EnemyType in which case the 
+    back side of an (unknown) enemy token is displayed."""
     def __init__(self, enemy, coords):
         super().__init__()
         self.enemy = enemy
