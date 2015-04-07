@@ -30,5 +30,8 @@ class MainWindow(QtWidgets.QWidget):
         super().__init__()
         self.setWindowTitle("Mage Knight")
         layout = QtWidgets.QHBoxLayout(self)
+        from mageknight import mapview
+        self.mapView = mapview.MapView(self)
+        layout.addWidget(self.mapView)
         
         self.resize(1000, 700)
