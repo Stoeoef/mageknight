@@ -164,13 +164,15 @@ class Map(QtCore.QObject):
     # TODO: Write comment
     """Model for the map of a Mage Knight match."""
     tileAdded = QtCore.pyqtSignal(HexCoords)
+    shieldTokenAdded = QtCore.pyqtSignal(HexCoords)
+    enemiesChanged = QtCore.pyqtSignal(HexCoords)
     
     def __init__(self, shape):
         super().__init__()
         assert isinstance(shape, MapShape)
         self.shape = shape
         self.tiles = {}
-        self.tokens = {}
+        self.shieldTokens = {}
         self.enemies = {}
         self.persons = {}
 
@@ -182,6 +184,27 @@ class Map(QtCore.QObject):
         assert coords not in self.tiles
         self.tiles[coords] = tile
         self.tileAdded.emit(coords)
+        
+    def addShieldToken(self, player, coords):
+        """Add a shield token of the given player to the specifiey hex. The hex must be empty."""
+        assert coords not in self.shieldTokens
+        self.shieldTokens[coords] = player
+        self.shieldTokenAdded.emit(coords)
+        
+    def addEnemy(self, enemy, coords):
+        """Add an enemy to the specified hex field. Each hex can contain arbitrary many enemies."""
+        if coords not in self.enemies:
+            self.enemies[coords] = []
+        self.enemies[coords].append(enemy)
+        self.enemiesChanged.emit(coords)
+        
+    def removeEnemy(self, enemy, coords):
+        """Remove the given enemy from the specified hex."""
+        try:
+            self.enemies[coords].remove(enemy)
+        except (KeyError, ValueError):
+            raise ValueError("There is no enemy {} at {}.".format(enemy, coords))
+        self.enemiesChanged.emit(coords)
         
     def tileAt(self, coords):
         """Return the tile at the given hex (contrary to self.tiles[coords] this works even if *coords* does

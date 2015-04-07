@@ -23,7 +23,8 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt
 
-from mageknight import map, hexcoords
+from mageknight import map, hexcoords, utils, enemies
+
 
 class MapView(QtWidgets.QGraphicsView):
     def __init__(self, parent):
@@ -44,7 +45,10 @@ class MapModel(QtWidgets.QGraphicsScene):
     def __init__(self, parent): # parent is necessary or segfaults occur
         super().__init__(parent)
         self.map = map.Map(map.MapShape.wedge)
+        self._enemyItems = {}
         self.map.tileAdded.connect(self._tileAdded)
+        self.map.shieldTokenAdded.connect(self._shieldTokenAdded)
+        self.map.enemiesChanged.connect(self._enemiesChanged)
         self._addAllTiles()
     
     def _addAllTiles(self):
@@ -71,9 +75,38 @@ class MapModel(QtWidgets.QGraphicsScene):
         self.map.addTile(map.Tile('c7'), hexcoords.HexCoords(11,12))
         self.map.addTile(map.Tile('c8'), hexcoords.HexCoords(13,11))
         
+        self.map.addShieldToken('arythea', hexcoords.HexCoords(1,3))
+        self.map.addEnemy(enemies.Enemy(enemies.EnemyType['city'], 'altem_mages'), hexcoords.HexCoords(1,1))
+        
     def _tileAdded(self, coords):
         tileItem = TileItem(self.map.tiles[coords], coords)
         self.addItem(tileItem)
+        
+    def _shieldTokenAdded(self, coords):
+        player = self.map.shieldTokens[coords]
+        pixmap = utils.getPixmap('mk/players/shield_{}.png'.format(player))
+        item = QtWidgets.QGraphicsPixmapItem(pixmap)
+        item.setPos(coords.center())
+        # to make sure that the site below remains visible, we do not center the token vertically
+        item.setOffset(-pixmap.width()/2, 0)
+        self.addItem(item)
+        
+    def _enemiesChanged(self, coords):
+        if coords in self._enemyItems:
+            for item in self._enemyItems[coords]:
+                self.removeItem(item)
+        self._enemyItems[coords] = []
+            
+        enemies = self.map.enemies[coords]
+        pixmaps = [e.pixmap() for e in enemies]
+        for pixmap in pixmaps:
+            pixmap = pixmap.scaled(pixmap.width()*0.8, pixmap.height()*0.8,
+                                   Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            item = QtWidgets.QGraphicsPixmapItem(pixmap)
+            item.setPos(coords.center())
+            item.setOffset(-pixmap.width()/2, -pixmap.height()/2)
+            self.addItem(item)
+            self._enemyItems[coords].append(item)
         
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
