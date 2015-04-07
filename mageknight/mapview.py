@@ -56,9 +56,10 @@ class MapModel(QtWidgets.QGraphicsScene):
         # Debug: Create some stuff
         self.map.addShieldToken('arythea', hexcoords.HexCoords(1,3))
         self.map.addEnemy(enemies.Enemy(enemies.EnemyType['city'], 'altem_mages'), hexcoords.HexCoords(1,1))
+        self.map.addEnemy(enemies.Enemy(enemies.EnemyType['city'], 'altem_guardians'), hexcoords.HexCoords(1,1))
         self.map.addPerson('norowas', hexcoords.HexCoords(0,2))
-        self.map.addPerson('arythea', hexcoords.HexCoords(1,2))
-        self.map.addPerson('goldyx', hexcoords.HexCoords(2,2))
+        self.map.addPerson('arythea', hexcoords.HexCoords(1,1))
+        self.map.addPerson('goldyx', hexcoords.HexCoords(2, 2))
         self.map.addPerson('tovak', hexcoords.HexCoords(3,2))
     
     def _addAllTiles(self):
@@ -97,34 +98,56 @@ class MapModel(QtWidgets.QGraphicsScene):
         # to make sure that the site below remains visible, we do not center the token vertically
         item.setOffset(-pixmap.width()/2, 0)
         self.addItem(item)
+    
+    def _shiftItemsAt(self, coords):
+        """Shift all enemy tokens and persons at the specified hex slightly, so that the user can see that
+        there are multiple items at this position.
+        """
+        items = []
+        if coords in self._enemyItems:
+            items.extend(self._enemyItems[coords])
+        for item in self._personItems.values():
+            if item.coords == coords:
+                items.append(item)
+                
+        if len(items) == 1:
+            items[0].setZValue(1)
+            items[0].setPos(coords.center())
+        elif len(items) > 1:
+            for i, item in enumerate(items):
+                offset = -20 + 40*i/(len(items)-1)
+                item.setPos(coords.center() + QtCore.QPointF(offset, 0))
+                item.setZValue(i+1)
         
     def _enemiesChanged(self, coords):
         if coords in self._enemyItems:
             for item in self._enemyItems[coords]:
                 self.removeItem(item)
-        self._enemyItems[coords] = []
-            
-        enemies = self.map.enemies[coords]
-        pixmaps = [e.pixmap() for e in enemies]
-        for pixmap in pixmaps:
-            pixmap = pixmap.scaled(pixmap.width()*0.8, pixmap.height()*0.8,
-                                   Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            item = QtWidgets.QGraphicsPixmapItem(pixmap)
-            item.setPos(coords.center())
-            item.setOffset(-pixmap.width()/2, -pixmap.height()/2)
+        self._enemyItems[coords] = [EnemyItem(enemy, coords) for enemy in self.map.enemies[coords]]
+        for item in self._enemyItems[coords]:
             self.addItem(item)
-            self._enemyItems[coords].append(item)
+        self._shiftItemsAt(coords)
     
     def _personChanged(self, person):
-        if person not in self._personItems:
-            self._personItems[person] = PersonItem(person, self.map.persons[person])
+        if person not in self._personItems: # person added
+            coords = self.map.persons[person]
+            self._personItems[person] = PersonItem(person, coords)
             self.addItem(self._personItems[person])
-        elif person not in self.map.persons:
-            self.removeItem(self._personItems[person])
+            self._shiftItemsAt(coords)
+        elif person not in self.map.persons: # person removed
+            item = self._personsItem[person]
+            self.removeItem(item)
             del self._personItems[person]
+            self._shiftItemsAt(item.coords)
         else:
-            self._personItems[person].setPos(self.map.persons[person].center())
-        
+            # person moved
+            item = self._personItems[person]
+            oldCoords = item.coords
+            newCoords = self.map.persons[person]
+            item.move(newCoords)
+            self._shiftItemsAt(oldCoords)
+            self._shiftItemsAt(newCoords)
+            
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
         print(hexcoords.HexCoords.fromPixel(event.scenePos()))
@@ -174,11 +197,25 @@ class TileItem(QtWidgets.QGraphicsPixmapItem):
             painter.drawText(center+QtCore.QPointF(0, painter.fontMetrics().height()), site.name)
         
 
+class EnemyItem(QtWidgets.QGraphicsPixmapItem):
+    """A QGraphicsItem that displays an enemy token."""
+    def __init__(self, enemy, coords):
+        super().__init__()
+        self.enemy = enemy
+        pixmap = enemy.pixmap()
+        pixmap = pixmap.scaled(pixmap.width()*0.8, pixmap.height()*0.8,
+                               Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self.setPixmap(pixmap)
+        self.setOffset(-pixmap.width()/2, -pixmap.height()/2)
+        self.setPos(coords.center())
+
+
 class PersonItem(QtWidgets.QGraphicsPixmapItem):
     """A QGraphicsItem that displays the mini-figure of a person."""
     def __init__(self, person, coords):
         super().__init__()
         self.person = person
+        self.coords = coords
         self.setPixmap(utils.getPixmap('mk/players/{}.png'.format(person)))
         if person == 'norowas':
             self.setOffset(-73, -180)
@@ -188,5 +225,10 @@ class PersonItem(QtWidgets.QGraphicsPixmapItem):
             self.setOffset(-85, -140)
         elif person == 'tovak':
             self.setOffset(-120, -90)
+        self.setPos(coords.center())
+        
+    def move(self, coords):
+        """Move the PersonItem to the specified hex."""
+        self.coords = coords
         self.setPos(coords.center())
         
