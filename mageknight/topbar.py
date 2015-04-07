@@ -33,7 +33,8 @@ class TopBar(QtWidgets.QWidget):
         layout.addWidget(self.roundWidget)
         self.manaSourceWidget = ManaSourceWidget(match)
         layout.addWidget(self.manaSourceWidget)
-        layout.addStretch()
+        self.buttonBar = ButtonBar(match)
+        layout.addWidget(self.buttonBar, 1)
 
 
 class RoundWidget(QtWidgets.QLabel):
@@ -50,11 +51,13 @@ class RoundWidget(QtWidgets.QLabel):
 
 class ManaSourceWidget(QtWidgets.QWidget):
     SIZE = 30
-    SPACE = 10
+    INNER_SPACE = 10
+    OUTER_SPACE = 0
     
     def __init__(self, theMatch):
         super().__init__()
-        #self.setFrameShape(QtWidgets.QFrame.Box)
+        self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
+                                                 QtWidgets.QSizePolicy.Fixed))
         self._pixmaps = {
            color: utils.getPixmap('mk/die_{}.png'.format(color.name))
                            .scaled(self.SIZE, self.SIZE, Qt.KeepAspectRatio, Qt.SmoothTransformation)
@@ -69,13 +72,48 @@ class ManaSourceWidget(QtWidgets.QWidget):
         
     def sizeHint(self):
         count = self.match.source.count
-        return QtCore.QSize((self.SIZE+self.SPACE)*count, self.SIZE + self.SPACE)
+        return QtCore.QSize(count*self.SIZE + (count-1)*self.INNER_SPACE + 2*self.OUTER_SPACE,
+                            self.SIZE + 2*self.OUTER_SPACE)
     
     def paintEvent(self, paintEvent):
         super().paintEvent(paintEvent)
         painter = QtGui.QPainter(self)
         for i, manaDie in enumerate(self._dice):
             pixmap = self._pixmaps[manaDie]
-            point = QtCore.QPoint(self.SPACE//2 + i*(self.SIZE+self.SPACE), self.SPACE//2)
+            point = QtCore.QPoint(self.OUTER_SPACE + i*(self.SIZE+self.INNER_SPACE), self.OUTER_SPACE)
             painter.drawPixmap(point, pixmap)
+            
+        
+class ToggleViewAction(QtWidgets.QAction):
+    def __init__(self, parent, viewId, title):
+        super().__init__(parent)
+        self.viewId = viewId
+        self.setText(title)
+        self.setCheckable(True)
+        self.triggered.connect(self._triggered)
+        self._connected = False
+        
+    def _triggered(self, checked):
+        from mageknight import mainwindow
+        view = mainwindow.mainWindow.getView(self.viewId)  # @UndefinedVariable
+        if checked:
+            if not self._connected:
+                view.installEventFilter(self)
+                self._connected = True
+            view.show()
+        else:
+            view.hide()
+            
+    def eventFilter(self, object, event):
+        if event.type() == QtCore.QEvent.Close:
+            self.setChecked(False)
+        return False # do not filter the event
+        
+    
+class ButtonBar(QtWidgets.QToolBar):
+    def __init__(self, match):
+        super().__init__()
+        self.match = match
+        for view, title in [('fame', 'Fame'), ('shop', 'Shop'), ('tiles', 'Tiles'), ('lexicon', 'Lexicon')]:
+            self.addAction(ToggleViewAction(self, view, title))
             

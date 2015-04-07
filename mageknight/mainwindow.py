@@ -23,17 +23,25 @@
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
 
+mainWindow = None # mainWindow instance
 
 class MainWindow(QtWidgets.QWidget):
     """Main window of the application."""
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Mage Knight")
+        global mainWindow
+        mainWindow = self
+        
         from mageknight import match
         self.match = match.Match()
         
         layout = QtWidgets.QHBoxLayout(self)
-        leftLayout = QtWidgets.QVBoxLayout(self)
+        layout.setSpacing(0)
+        layout.setContentsMargins(0,0,0,0)
+        leftLayout = QtWidgets.QVBoxLayout()
+        leftLayout.setSpacing(0)
+        leftLayout.setContentsMargins(0,0,0,0)
         layout.addLayout(leftLayout)
         
         from mageknight import topbar, mapview
@@ -43,3 +51,11 @@ class MainWindow(QtWidgets.QWidget):
         leftLayout.addWidget(self.mapView, 1)
         
         self.resize(1000, 700)
+        
+        self._views = {}
+        
+    def getView(self, viewId):
+        if viewId not in self._views:
+            self._views[viewId] = QtWidgets.QDialog(self) # TODO implement views
+            self._views[viewId].resize(100, 100)
+        return self._views[viewId]
