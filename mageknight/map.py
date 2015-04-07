@@ -161,11 +161,21 @@ class Tile:
         
         
 class Map(QtCore.QObject):
-    # TODO: Write comment
-    """Model for the map of a Mage Knight match."""
+    """Model for the map of a Mage Knight match.
+    Public (read-only) attributes are:
+        
+        - shape: the MapShape specified in the constructor.
+        - tiles: dict mapping HexCoords to Tiles. The coordinates always refer to the center hex of the tile.
+        - shieldTokens: dict mapping HexCoords to a Player whose shield token is at this positionj
+        - enemies: dict mapping HexCoords to a list of enemies at this position.
+        - persons: dict mapping Persons to HexCoords (the mapping direction is swapped, because persons
+                   typically move on the map) 
+    
+    """
     tileAdded = QtCore.pyqtSignal(HexCoords)
     shieldTokenAdded = QtCore.pyqtSignal(HexCoords)
     enemiesChanged = QtCore.pyqtSignal(HexCoords)
+    personChanged = QtCore.pyqtSignal(str) # TODO: Change str -> Person
     
     def __init__(self, shape):
         super().__init__()
@@ -184,6 +194,25 @@ class Map(QtCore.QObject):
         assert coords not in self.tiles
         self.tiles[coords] = tile
         self.tileAdded.emit(coords)
+        
+    def tileAt(self, coords):
+        """Return the tile at the given hex (contrary to self.tiles[coords] this works even if *coords* does
+        not point to the center of the tile)."""
+        return self.tiles.get(tileCenter(coords))
+        
+    def terrainAt(self, coords):
+        """Return the terrain of the given hex. Returns None if there is no tile at this position."""
+        tile = self.tileAt(coords)
+        if tile is not None:
+            return tile.terrainAt(coords-tileCenter(coords))
+        else: return None
+        
+    def siteAt(self, coords):
+        """Return the site on the given hex. Returns None if there is no tile at this position."""
+        tile = self.tileAt(coords)
+        if tile is not None:
+            return tile.siteAt(coords-tileCenter(coords))
+        else: return None
         
     def addShieldToken(self, player, coords):
         """Add a shield token of the given player to the specifiey hex. The hex must be empty."""
@@ -206,24 +235,21 @@ class Map(QtCore.QObject):
             raise ValueError("There is no enemy {} at {}.".format(enemy, coords))
         self.enemiesChanged.emit(coords)
         
-    def tileAt(self, coords):
-        """Return the tile at the given hex (contrary to self.tiles[coords] this works even if *coords* does
-        not point to the center of the tile)."""
-        return self.tiles.get(tileCenter(coords))
+    def addPerson(self, person, coords):
+        """Add the given person to the specified hex."""
+        assert person not in self.persons
+        self.persons[person] = coords
+        self.personChanged.emit(person)
+    
+    def removePerson(self, person):
+        """Remove the given person from the map."""
+        del self.persons[person]
+        self.personChanged.emit(person)
         
-    def terrainAt(self, coords):
-        """Return the terrain of the given hex. Returns None if there is no tile at this position."""
-        tile = self.tileAt(coords)
-        if tile is not None:
-            return tile.terrainAt(coords-tileCenter(coords))
-        else: return None
-        
-    def siteAt(self, coords):
-        """Return the site on the given hex. Returns None if there is no tile at this position."""
-        tile = self.tileAt(coords)
-        if tile is not None:
-            return tile.siteAt(coords-tileCenter(coords))
-        else: return None
+    def movePerson(self, person, coords):
+        """Move the given person to the specified hex."""
+        self.persons[person] = coords
+        self.personChanged.emit(person)
 
 
 def isTileCenter(coords):

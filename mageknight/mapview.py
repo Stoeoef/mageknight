@@ -46,10 +46,20 @@ class MapModel(QtWidgets.QGraphicsScene):
         super().__init__(parent)
         self.map = map.Map(map.MapShape.wedge)
         self._enemyItems = {}
+        self._personItems = {}
         self.map.tileAdded.connect(self._tileAdded)
         self.map.shieldTokenAdded.connect(self._shieldTokenAdded)
         self.map.enemiesChanged.connect(self._enemiesChanged)
+        self.map.personChanged.connect(self._personChanged)
         self._addAllTiles()
+        
+        # Debug: Create some stuff
+        self.map.addShieldToken('arythea', hexcoords.HexCoords(1,3))
+        self.map.addEnemy(enemies.Enemy(enemies.EnemyType['city'], 'altem_mages'), hexcoords.HexCoords(1,1))
+        self.map.addPerson('norowas', hexcoords.HexCoords(0,2))
+        self.map.addPerson('arythea', hexcoords.HexCoords(1,2))
+        self.map.addPerson('goldyx', hexcoords.HexCoords(2,2))
+        self.map.addPerson('tovak', hexcoords.HexCoords(3,2))
     
     def _addAllTiles(self):
         """Debug method: Create a map containing all tiles."""
@@ -74,9 +84,6 @@ class MapModel(QtWidgets.QGraphicsScene):
         self.map.addTile(map.Tile('c6'), hexcoords.HexCoords(9,13))
         self.map.addTile(map.Tile('c7'), hexcoords.HexCoords(11,12))
         self.map.addTile(map.Tile('c8'), hexcoords.HexCoords(13,11))
-        
-        self.map.addShieldToken('arythea', hexcoords.HexCoords(1,3))
-        self.map.addEnemy(enemies.Enemy(enemies.EnemyType['city'], 'altem_mages'), hexcoords.HexCoords(1,1))
         
     def _tileAdded(self, coords):
         tileItem = TileItem(self.map.tiles[coords], coords)
@@ -107,6 +114,16 @@ class MapModel(QtWidgets.QGraphicsScene):
             item.setOffset(-pixmap.width()/2, -pixmap.height()/2)
             self.addItem(item)
             self._enemyItems[coords].append(item)
+    
+    def _personChanged(self, person):
+        if person not in self._personItems:
+            self._personItems[person] = PersonItem(person, self.map.persons[person])
+            self.addItem(self._personItems[person])
+        elif person not in self.map.persons:
+            self.removeItem(self._personItems[person])
+            del self._personItems[person]
+        else:
+            self._personItems[person].setPos(self.map.persons[person].center())
         
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
@@ -114,6 +131,7 @@ class MapModel(QtWidgets.QGraphicsScene):
 
 
 class TileItem(QtWidgets.QGraphicsPixmapItem):
+    """A QGraphicsItem to display a Mage Knight tile."""
     def __init__(self, tile, coords):
         super().__init__()
         self.tile = tile
@@ -139,6 +157,7 @@ class TileItem(QtWidgets.QGraphicsPixmapItem):
             self._drawText(painter, n)
         painter.restore()
 
+    # debug methods
     def _drawBorder(self, painter, coords):
         corners = hexcoords.HexCoords(0,0).corners()
         lastCorner = corners[-1]
@@ -153,4 +172,21 @@ class TileItem(QtWidgets.QGraphicsPixmapItem):
         painter.drawText(center, terrain.name)
         if site != map.Site.none:
             painter.drawText(center+QtCore.QPointF(0, painter.fontMetrics().height()), site.name)
+        
+
+class PersonItem(QtWidgets.QGraphicsPixmapItem):
+    """A QGraphicsItem that displays the mini-figure of a person."""
+    def __init__(self, person, coords):
+        super().__init__()
+        self.person = person
+        self.setPixmap(utils.getPixmap('mk/players/{}.png'.format(person)))
+        if person == 'norowas':
+            self.setOffset(-73, -180)
+        elif person == 'arythea':
+            self.setOffset(-43, -133)
+        elif person == 'goldyx':
+            self.setOffset(-85, -140)
+        elif person == 'tovak':
+            self.setOffset(-120, -90)
+        self.setPos(coords.center())
         
