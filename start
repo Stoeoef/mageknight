@@ -1,0 +1,3 @@
+#!/bin/bash
+cd "$(dirname "$0")"
+python3 -c"from mageknight import application; application.run()" "$@"  --folder .
