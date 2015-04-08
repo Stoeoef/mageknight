@@ -21,9 +21,33 @@
 #
 
 import os
-from PyQt5 import QtGui
+
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtCore import Qt 
 
 
-def getPixmap(path):
-    """Return a QPixmap from a path within the images-folder, e.g. 'tiles/tile-1.png'."""
-    return QtGui.QPixmap(os.path.join("images", *path.split('/'))) # use platform-specific separators
+def getPixmap(path, size=None):
+    """Return a QPixmap from a path within the images-folder, e.g. 'tiles/tile-1.png'. If *size* is given,
+    the pixmap will be scaled to fit into *size* (keeping aspect ratio)."""
+    pixmap = QtGui.QPixmap(os.path.join("images", *path.split('/'))) # use platform-specific separators
+    if size is None:
+        return pixmap
+    else: return scalePixmap(pixmap, size)
+
+
+def html(pixmap, attributes=''):
+    """Return an <img>-tag that contains the pixmap embedded into HTML using a data-URI
+    (https://en.wikipedia.org/wiki/Data_URI_scheme). Use this to include pixmaps that are not stored in a
+    file into HTML-code. *attributes* is inserted into the tag and may contain arbitrary HTML-attributes.
+    """ 
+    buffer = QtCore.QBuffer()
+    pixmap.save(buffer, "PNG")
+    string = bytes(buffer.buffer().toBase64()).decode('ascii')
+    return '<img {} src="data:image/png;base64,{}" />'.format(attributes, string)
+
+
+def scalePixmap(pixmap, sizeOrX, y=None):
+    if isinstance(sizeOrX, QtCore.QSize):
+        size = sizeOrX
+    else: size = QtCore.QSize(sizeOrX, y)
+    return pixmap.scaled(size, Qt.KeepAspectRatio, Qt.SmoothTransformation)

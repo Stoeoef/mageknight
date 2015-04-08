@@ -46,7 +46,7 @@ class RoundWidget(QtWidgets.QLabel):
         self._roundChanged(match.round) # initialize
         
     def _roundChanged(self, round):
-        self.setText('Round {}: {}'.format(self.ROMAN_NUMBERS[round.number-1], round.type.name))
+        self.setText(self.tr('Round {}: {}').format(self.ROMAN_NUMBERS[round.number-1], round.type.name))
         
 
 class ManaSourceWidget(QtWidgets.QWidget):
@@ -59,7 +59,7 @@ class ManaSourceWidget(QtWidgets.QWidget):
         self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
                                                  QtWidgets.QSizePolicy.Fixed))
         self._pixmaps = {
-           color: utils.getPixmap('mk/die_{}.png'.format(color.name))
+           color: utils.getPixmap('mk/mana/die_{}.png'.format(color.name))
                            .scaled(self.SIZE, self.SIZE, Qt.KeepAspectRatio, Qt.SmoothTransformation)
                 for color in match.Mana
         }
@@ -114,6 +114,11 @@ class ButtonBar(QtWidgets.QToolBar):
     def __init__(self, match):
         super().__init__()
         self.match = match
-        for view, title in [('fame', 'Fame'), ('shop', 'Shop'), ('tiles', 'Tiles'), ('lexicon', 'Lexicon')]:
+        views = [('fame', self.tr('Fame')),
+                 ('shop', self.tr('Shop')),
+                 ('tiles', self.tr('Tiles')),
+                 ('lexicon', self.tr('Lexicon')),
+            ]
+        for view, title in views: 
             self.addAction(ToggleViewAction(self, view, title))
             

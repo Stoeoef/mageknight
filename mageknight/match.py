@@ -24,7 +24,7 @@ import enum, random
 
 from PyQt5 import QtCore
 
-from mageknight import map
+from mageknight import map, player
 
 class RoundType(enum.Enum):
     day = 1
@@ -43,7 +43,8 @@ class Match(QtCore.QObject):
     def __init__(self):
         super().__init__()
         self.round = Round(1, RoundType.day)
-        self.source = ManaSource(5) # TODO: number of players + 2
+        self.players = [player.Player('Max'), player.Player('Moritz')]
+        self.source = ManaSource(len(self.players)+2)
         self.map = map.Map(map.MapShape.wedge)
     
         
@@ -62,6 +63,10 @@ class Mana(enum.Enum):
     @property
     def basic(self):
         return self not in (Mana.gold, Mana.black)
+    
+    @staticmethod
+    def basicColors():
+        return (Mana.red, Mana.blue, Mana.green, Mana.white)
     
     
 class ManaSource(QtCore.QObject):

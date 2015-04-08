@@ -29,7 +29,7 @@ class MainWindow(QtWidgets.QWidget):
     """Main window of the application."""
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Mage Knight")
+        self.setWindowTitle(self.tr("Mage Knight"))
         global mainWindow
         mainWindow = self
         
@@ -42,13 +42,15 @@ class MainWindow(QtWidgets.QWidget):
         leftLayout = QtWidgets.QVBoxLayout()
         leftLayout.setSpacing(0)
         leftLayout.setContentsMargins(0,0,0,0)
-        layout.addLayout(leftLayout)
+        layout.addLayout(leftLayout, 1)
         
-        from mageknight import topbar, mapview
+        from mageknight import topbar, mapview, playerarea
         self.topBar = topbar.TopBar(self.match)
         leftLayout.addWidget(self.topBar)
         self.mapView = mapview.MapView(self, self.match)
         leftLayout.addWidget(self.mapView, 1)
+        self.playerColumn = playerarea.PlayerColumn(self.match)
+        layout.addWidget(self.playerColumn)
         
         self.resize(1000, 700)
         
