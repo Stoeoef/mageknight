@@ -26,6 +26,10 @@ from PyQt5 import QtCore
 
 from mageknight import utils
 
+MIN_REPUTATION = -7
+MAX_REPUTATION = 7
+REPUTATION_MODIFIERS = ('X', -5, -3, -2, -1, -1, 0, 0, 0, 1, 1, 2, 2, 3, 5)  
+
 class Hero(enum.Enum):
     """One of the heros of Mage Knight."""
     Norowas = 1
@@ -88,21 +92,21 @@ class PlayerTactic:
     
     def pixmap(self):
         return self.tactic.pixmap()
-        
+
     
 class Player(QtCore.QObject):
     """A Mage Knight player. This class manages the player's status."""
     levelChanged = QtCore.pyqtSignal(int)
     fameChanged = QtCore.pyqtSignal(int)
-    reputationChanged = QtCore.pyqtSignal(int)
+    reputationChanged = QtCore.pyqtSignal(int) # reputationPosition changed
     tacticChanged = QtCore.pyqtSignal(PlayerTactic)
     crystalsChanged = QtCore.pyqtSignal()
     cardCountChanged = QtCore.pyqtSignal()
-    
-    def __init__(self, name):
+                                
+    def __init__(self, name, hero=None):
         super().__init__()
         self.name = name
-        self.hero = None
+        self.hero = hero
         self.tactic = PlayerTactic(Tactic.manaSteal)
         self.level = 1
         self.armor = 2
@@ -115,3 +119,7 @@ class Player(QtCore.QObject):
         self.handCardCount = 5
         self.drawPileCount = 11
         self.discardPileCount = 0
+    
+    @property
+    def reputationModifier(self):
+        return REPUTATION_MODIFIERS[self.reputation - MIN_REPUTATION]

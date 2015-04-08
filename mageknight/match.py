@@ -43,7 +43,11 @@ class Match(QtCore.QObject):
     def __init__(self):
         super().__init__()
         self.round = Round(1, RoundType.day)
-        self.players = [player.Player('Max'), player.Player('Moritz')]
+        self.players = [player.Player('Arythea', player.Hero.Arythea),
+                        player.Player('Goldyx', player.Hero.Goldyx),
+                        player.Player('Norowas', player.Hero.Norowas),
+                        player.Player('Tovak', player.Hero.Tovak)
+                        ]
         self.source = ManaSource(len(self.players)+2)
         self.map = map.Map(map.MapShape.wedge)
     

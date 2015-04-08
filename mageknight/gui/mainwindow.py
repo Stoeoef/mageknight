@@ -57,7 +57,15 @@ class MainWindow(QtWidgets.QWidget):
         self._views = {}
         
     def getView(self, viewId):
+        """Return the view with the given id. Create it when it is first requested.
+        Known ids are:
+            - fame: The fame/reputation board
+        """
         if viewId not in self._views:
-            self._views[viewId] = QtWidgets.QDialog(self) # TODO implement views
-            self._views[viewId].resize(100, 100)
+            if viewId == 'fame':
+                from mageknight.gui import fameview
+                self._views[viewId] = fameview.FameView(self, self.match)
+            else:
+                self._views[viewId] = QtWidgets.QDialog(self) # TODO implement remaining views
+                self._views[viewId].resize(100, 100)
         return self._views[viewId]
