@@ -94,7 +94,7 @@ class ToggleViewAction(QtWidgets.QAction):
         self._connected = False
         
     def _triggered(self, checked):
-        from mageknight import mainwindow
+        from mageknight.gui import mainwindow
         view = mainwindow.mainWindow.getView(self.viewId)  # @UndefinedVariable
         if checked:
             if not self._connected:

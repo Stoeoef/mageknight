@@ -26,7 +26,7 @@ from PyQt5 import QtWidgets
 def run():
     """Run the application."""
     app = QtWidgets.QApplication([])
-    from mageknight import mainwindow
+    from mageknight.gui import mainwindow
     window = mainwindow.MainWindow()
     window.show()
     app.exec_()
