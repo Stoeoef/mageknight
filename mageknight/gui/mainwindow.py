@@ -56,6 +56,14 @@ class MainWindow(QtWidgets.QWidget):
         
         self._views = {}
         
+    def availableViews(self):
+        """Return a list of (view id, view title)-tuples for all available views. Views are popup windows
+        offer additional game information (e.g. the fame board)."""
+        return [
+            ('fame', self.tr("Fame board")),
+            ('cards', self.tr("Cards"))
+        ]
+        
     def getView(self, viewId):
         """Return the view with the given id. Create it when it is first requested.
         Known ids are:
@@ -65,7 +73,9 @@ class MainWindow(QtWidgets.QWidget):
             if viewId == 'fame':
                 from mageknight.gui import fameview
                 self._views[viewId] = fameview.FameView(self, self.match)
+            elif viewId == 'cards':
+                from mageknight.gui import cardsview
+                self._views[viewId] = cardsview.CardsView(self)
             else:
-                self._views[viewId] = QtWidgets.QDialog(self) # TODO implement remaining views
-                self._views[viewId].resize(100, 100)
+                raise ValueError("Invalid view id: '{}'".format(viewId))
         return self._views[viewId]

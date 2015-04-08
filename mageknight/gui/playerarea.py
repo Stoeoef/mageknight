@@ -131,7 +131,7 @@ class TacticWidget(QtWidgets.QLabel):
             pixmap = toolTipPixmap = tactic.pixmap()
         else:
             toolTipPixmap = tactic.pixmap()
-            pixmap = utils.getPixmap('mk/tactics/{}_back.jpg'.format(tactic.roundType.name))
+            pixmap = utils.getPixmap('mk/cards/tactics/{}_back.jpg'.format(tactic.roundType.name))
         
         # TODO: Implement tactic.manaDie and tactic.cardCount
             

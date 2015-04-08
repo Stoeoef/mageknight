@@ -114,11 +114,7 @@ class ButtonBar(QtWidgets.QToolBar):
     def __init__(self, match):
         super().__init__()
         self.match = match
-        views = [('fame', self.tr('Fame')),
-                 ('shop', self.tr('Shop')),
-                 ('tiles', self.tr('Tiles')),
-                 ('lexicon', self.tr('Lexicon')),
-            ]
-        for view, title in views: 
+        from mageknight.gui import mainwindow
+        for view, title in mainwindow.mainWindow.availableViews(): # @UndefinedVariable
             self.addAction(ToggleViewAction(self, view, title))
             

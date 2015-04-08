@@ -68,8 +68,8 @@ class Tactic(enum.Enum):
         if self is Tactic.none:
             return None
         else:
-            return utils.getPixmap('mk/tactics/{}{}.jpg'.format('d' if self.value <= 6 else 'n', self.value),
-                                   size)
+            name = '{}{}.jpg'.format('d' if self.value <= 6 else 'n', self.value)
+            return utils.getPixmap('mk/cards/tactics/'+name, size)
     
     
 class PlayerTactic:
