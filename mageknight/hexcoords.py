@@ -89,10 +89,15 @@ class HexCoords:
         continue in clockwise order."""
         return [self.neighbor(i) for i in range(6)]
     
+    def isNeighborOf(self, other):
+        """Return whether the given hex is a neighbor of this hex."""
+        return self.distanceTo(other) == 1
+    
     def distanceTo(self, other):
-        """Return the (integer) distance between this hex and another one.""" 
-        return (abs(self.x - other.y) + abs(self.y - other.y)
-              + abs(self.x + self.y - other.x - other.y)) / 2
+        """Return the (integer) distance between this hex and another one."""
+        return (abs(self.x - other.x) + abs(self.y - other.y)
+                 # note: our y-axis is reversed compared to redblobgames.com
+                 + abs(self.x - self.y - other.x + other.y)) / 2
 
     def contains(self, point):
         """Return whether this hex contains the given pixel coordinates (QPoint or QPointF)."""
