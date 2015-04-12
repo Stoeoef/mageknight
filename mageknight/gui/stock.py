@@ -20,6 +20,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import math
+
 from PyQt5 import QtCore, QtWidgets
 
 
@@ -28,23 +30,35 @@ class Stock(QtWidgets.QGraphicsObject):
     (if a child is smaller it will still get the specified space). When items are inserted or removed,
     animations are used to move all items to their new position.
     Warning: For these animations to work, all items must be subclasses of QGraphicsObject.
+    
+    Before a stock displays items you must either use setRowCount or setColumnCount.
     """
-    SPACING = 10 # spacing between items and borders
+    PADDING = 10 # between items and borders
+    SPACING = 10 # between items
     
     def __init__(self, objectSize):
         super().__init__()
         self.objectSize = objectSize
-        self._size = QtCore.QSizeF(600, 400)
         self._anims = QtCore.QParallelAnimationGroup(self)
+        self._cols = None
+        self._rows = None
         
-    def size(self):
-        """Return the size occupied by this stock."""
-        return self._size
-    
-    def setSize(self, size):
-        """Set the size that can be used to layout child items."""
-        if size != self._size:
-            self._size = QtCore.QSizeF(size)
+    def setColumnCount(self, cols):
+        """Set the number of columns that the grid layout should use. The layout will always reserve enough
+        space for these columns and use as many rows as necessary."""
+        assert cols > 0
+        if cols != self._cols:
+            self._cols = cols
+            self._rows = None
+            self.layout()
+            
+    def setRowCount(self, rows):
+        """Set the number of rows that the grid layout should use. The layout will always reserve enough
+        space for these rows and use as many columns as necessary."""
+        assert rows > 0
+        if rows != self._rows:
+            self._rows = rows
+            self._cols = None
             self.layout()
         
     def items(self):
@@ -77,30 +91,54 @@ class Stock(QtWidgets.QGraphicsObject):
         self.layout()
     
     def boundingRect(self):
-        return QtCore.QRectF(self.pos(), self._size)
+        if self._cols is not None:
+            necessaryRows = math.ceil(len(self.items()) / self._cols)
+            width = self._cols * (self.objectSize.width() + self.SPACING) - self.SPACING
+            height = necessaryRows * (self.objectSize.height() + self.SPACING) - self.SPACING
+        elif self._rows is not None:
+            necessaryColumns  = math.ceil(len(self.items()) / self._rows)
+            width = necessaryColumns * (self.objectSize.width() + self.SPACING) - self.SPACING 
+            height = self._rows * (self.objectSize.height() + self.SPACING) - self.SPACING
+        else:
+            width = height = 0
+        return QtCore.QRectF(0, 0, max(0, width) + 2*self.PADDING, max(0, height) + 2*self.PADDING)
     
     def paint(self, painter, option, widget):
-        return # TODO: paint something or set the correct flag
+        pass
     
+    def _moveItemToPos(self, item, x, y):
+        animation = QtCore.QPropertyAnimation(item, "pos", self)
+        self._anims.addAnimation(animation)
+        animation.setDuration(500)
+        animation.setEndValue(QtCore.QPointF(x, y))
+        animation.start()
+        
     def layout(self):
         """Recompute the position of all items."""
         self._anims.stop()
         self._anims.clear()
-        column = 0
-        x = self.SPACING
-        y = self.SPACING
-        width = self.objectSize.width()
-        for item in self.childItems():
-            if column > 0 and x + self.SPACING + width > self._size.width():
-                # go to next row
-                x = self.SPACING
+        x = self.PADDING
+        y = self.PADDING
+        if self._cols is not None: 
+            column = 0
+            for item in self.childItems():
+                if column >= self._cols:
+                    # go to next row
+                    x = self.PADDING
+                    y += self.SPACING + self.objectSize.height()
+                    column = 0
+                self._moveItemToPos(item, x, y)
+                x += self.SPACING + self.objectSize.width()
+                column += 1
+        elif self._rows is not None:
+            row = 0
+            for item in self.childItems():
+                if row >= self._rows:
+                    # go to next row
+                    y = self.PADDING
+                    x += self.SPACING + self.objectSize.width()
+                    row = 0
+                self._moveItemToPos(item, x, y)
                 y += self.SPACING + self.objectSize.height()
-                column = 0
-            animation = QtCore.QPropertyAnimation(item, "pos", self)
-            self._anims.addAnimation(animation)
-            animation.setDuration(500)
-            animation.setEndValue(QtCore.QPointF(x, y))
-            animation.start()
-            x += self.SPACING + width
-            column += 1
+                row += 1
         

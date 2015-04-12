@@ -28,6 +28,7 @@ from mageknight.gui import stock
 
 
 class PlayerArea(QtWidgets.QWidget):
+    """This area contains the player's skills, hand cards and units."""
     def __init__(self, match):
         super().__init__()
         self.match = match
@@ -44,7 +45,7 @@ class PlayerArea(QtWidgets.QWidget):
         # Skills (maximum image size is 216x142)
         size = QtCore.QSize(76, 50)
         self.skills = stock.Stock(size)
-        self.skills.setSize(QtCore.QSizeF(100, 400))
+        self.skills.setColumnCount(1)
         self.scene.addItem(self.skills)
         
         for skill in ['norowas_1', 'norowas_2', 'norowas_3']:
@@ -54,8 +55,8 @@ class PlayerArea(QtWidgets.QWidget):
         # Hand cards (maximum image size is 365x514
         size = QtCore.QSize(107, 150)
         self.cards = stock.Stock(size)
-        self.cards.setSize(QtCore.QSizeF(600, 400))
-        self.cards.setPos(120, 0)
+        self.cards.setColumnCount(5)
+        self.cards.setPos(self.skills.x() + self.skills.boundingRect().right() + 10, 0)
         self.scene.addItem(self.cards)
         
         for card in ['basic_actions/march', 'basic_actions/stamina', 'basic_actions/concentration',
@@ -66,8 +67,8 @@ class PlayerArea(QtWidgets.QWidget):
         # Units
         size = QtCore.QSize(107, 150)
         self.units = stock.Stock(size)
-        self.units.setSize(QtCore.QSizeF(380, 400))
-        self.units.setPos(740, 0)
+        self.units.setColumnCount(3)
+        self.units.setPos(self.cards.x() + self.cards.boundingRect().right() + 40, 0)
         self.scene.addItem(self.units)
         
         for unit in ['regular_units/peasants', 'regular_units/foresters', 'regular_units/northern_monks']:
