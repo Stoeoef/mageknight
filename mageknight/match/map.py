@@ -25,6 +25,7 @@ import enum
 from PyQt5 import QtCore
 
 from mageknight import utils
+from mageknight.match import player 
 from mageknight.hexcoords import HexCoords
 
 
@@ -175,7 +176,7 @@ class Map(QtCore.QObject):
     tileAdded = QtCore.pyqtSignal(HexCoords)
     shieldTokenAdded = QtCore.pyqtSignal(HexCoords)
     enemiesChanged = QtCore.pyqtSignal(HexCoords)
-    personChanged = QtCore.pyqtSignal(str) # TODO: Change str -> Person
+    personChanged = QtCore.pyqtSignal(player.Player)
     
     def __init__(self, shape):
         super().__init__()

@@ -20,59 +20,59 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import enum, random
+import enum
 
 from PyQt5 import QtCore
 
-from mageknight import map, player
+from mageknight import stack, hexcoords
+from mageknight.match import player, map, enemies
+from mageknight.match.data import RoundType, Round, Mana, InvalidAction
+from mageknight.match.adapter import MatchAdapter
 
-class RoundType(enum.Enum):
-    day = 1
-    night = 2
-    
-    
-class Round:
-    def __init__(self, number, type):
-        self.number = number
-        self.type = type
+
+class State(enum.Enum):
+    # TODO: more states are necessary for e.g. pillaging, resting, level-up...
+    init = 1
+    movement = 2
+    action = 3
 
 
 class Match(QtCore.QObject):
+    """This is the central object managing a match."""
     roundChanged = QtCore.pyqtSignal(Round)
     
-    def __init__(self):
+    def __init__(self, players):
         super().__init__()
+        self.stack = stack.UndoStack()
+        
         self.round = Round(1, RoundType.day)
-        self.players = [player.Player('Arythea', player.Hero.Arythea),
-                        player.Player('Goldyx', player.Hero.Goldyx),
-                        player.Player('Norowas', player.Hero.Norowas),
-                        player.Player('Tovak', player.Hero.Tovak)
-                        ]
+        self.state = State.movement
+        self.players = players
         self.source = ManaSource(len(self.players)+2)
         self.map = map.Map(map.MapShape.wedge)
+        for player in self.players:
+            self.map.addPerson(player, hexcoords.HexCoords(0, 0))
     
+    def movePlayer(self, player, coords):
+        if not self.state == State.movement:
+            raise InvalidAction("Can only move during movement phase.")
+        pos = self.map.persons[player]
+        if pos == coords:
+            return
+        if not coords.isNeighborOf(pos):
+            raise InvalidAction("Can only move to adjacent fields.")
+        terrain = self.map.terrainAt(coords)
+        if terrain is None or not self.terrainIsPassable(terrain):
+            raise InvalidAction("This field is not passable")
+        self.map.movePerson(player, coords)
         
-class Mana(enum.Enum):
-    red = 1
-    blue = 2
-    green = 3
-    white = 4
-    gold = 5
-    black = 6
-    
-    @staticmethod
-    def random():
-        return Mana(random.randint(1, 6))
-    
-    @property
-    def basic(self):
-        return self not in (Mana.gold, Mana.black)
-    
-    @staticmethod
-    def basicColors():
-        return (Mana.red, Mana.blue, Mana.green, Mana.white)
-    
-    
+    def terrainIsPassable(self, terrain):
+        """Return whether the given terrain is currently passable for the current player. This might change
+        as an effect of e.g. spells."""
+        assert isinstance(terrain, map.Terrain)
+        return terrain not in (map.Terrain.lake, map.Terrain.mountain)
+        
+        
 class ManaSource(QtCore.QObject):
     """The mana source contains the mana dice available to all players. It behaves like a read-only list, so 
     e.g. 'len(source)' and 'source[2]' work as expected. The additional attribute 'count' stores the initial
@@ -112,4 +112,3 @@ class ManaSource(QtCore.QObject):
             if self.isValidAtRoundStart():
                 break
         self.changed.emit()
-        

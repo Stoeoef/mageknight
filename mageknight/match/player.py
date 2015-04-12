@@ -26,9 +26,11 @@ from PyQt5 import QtCore
 
 from mageknight import utils
 
+
 MIN_REPUTATION = -7
 MAX_REPUTATION = 7
 REPUTATION_MODIFIERS = ('X', -5, -3, -2, -1, -1, 0, 0, 0, 1, 1, 2, 2, 3, 5)  
+
 
 class Hero(enum.Enum):
     """One of the heros of Mage Knight."""

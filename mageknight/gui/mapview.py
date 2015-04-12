@@ -20,10 +20,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtCore import Qt
 
-from mageknight import map, hexcoords, utils, enemies
+from mageknight import hexcoords, utils
+from mageknight.match import map, player
 
 
 class MapView(QtWidgets.QGraphicsView):
@@ -44,23 +45,22 @@ class MapView(QtWidgets.QGraphicsView):
 class MapModel(QtWidgets.QGraphicsScene):
     def __init__(self, parent, match):
         super().__init__(parent) # parent is necessary or segfaults occur
+        self.match = match
         self.map = match.map
         self._enemyItems = {}
         self._personItems = {}
+        
+        # initialize
+        for coords in self.map.enemies.keys():
+            self._enemiesChanged(coords)
+        for person in self.map.persons.keys():
+            self._personChanged(person)
+        
         self.map.tileAdded.connect(self._tileAdded)
         self.map.shieldTokenAdded.connect(self._shieldTokenAdded)
         self.map.enemiesChanged.connect(self._enemiesChanged)
         self.map.personChanged.connect(self._personChanged)
         self._addAllTiles()
-        
-        # Debug: Create some stuff
-        self.map.addShieldToken('arythea', hexcoords.HexCoords(1,3))
-        self.map.addEnemy(enemies.Enemy(enemies.EnemyType['city'], 'altem_mages'), hexcoords.HexCoords(1,1))
-        self.map.addEnemy(enemies.Enemy(enemies.EnemyType['city'], 'altem_guardsmen'), hexcoords.HexCoords(1,1))
-        self.map.addPerson('norowas', hexcoords.HexCoords(0,2))
-        self.map.addPerson('arythea', hexcoords.HexCoords(1,1))
-        self.map.addPerson('goldyx', hexcoords.HexCoords(2, 2))
-        self.map.addPerson('tovak', hexcoords.HexCoords(3,2))
     
     def _addAllTiles(self):
         """Debug method: Create a map containing all tiles."""
@@ -150,7 +150,8 @@ class MapModel(QtWidgets.QGraphicsScene):
             
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
-        print(hexcoords.HexCoords.fromPixel(event.scenePos()))
+        coords = hexcoords.HexCoords.fromPixel(event.scenePos())
+        self.match.movePlayer(coords)
 
 
 class TileItem(QtWidgets.QGraphicsPixmapItem):
@@ -165,36 +166,6 @@ class TileItem(QtWidgets.QGraphicsPixmapItem):
 
     def paint(self, painter, option, widget=None):
         super().paint(painter, option, widget)
-        
-        # Debugging code
-        painter.save()
-        pen = QtGui.QPen(Qt.magenta)
-        pen.setWidth(7)
-        painter.setPen(pen)
-        font = painter.font()
-        font.setPointSize(20)
-        painter.setFont(font)
-        #self._drawBorder(painter, self.coords)
-        self._drawText(painter, self.coords)
-        for n in self.coords.neighbors():
-            self._drawText(painter, n)
-        painter.restore()
-
-    # debug methods
-    def _drawBorder(self, painter, coords):
-        corners = hexcoords.HexCoords(0,0).corners()
-        lastCorner = corners[-1]
-        for corner in corners:
-            painter.drawLine(lastCorner, corner)
-            lastCorner = corner
-            
-    def _drawText(self, painter, coords):
-        terrain = self.scene().map.terrainAt(coords)
-        site = self.scene().map.siteAt(coords)
-        center = coords.center()-self.coords.center()
-        painter.drawText(center, terrain.name)
-        if site != map.Site.none:
-            painter.drawText(center+QtCore.QPointF(0, painter.fontMetrics().height()), site.name)
         
 
 class EnemyItem(QtWidgets.QGraphicsPixmapItem):
@@ -217,15 +188,17 @@ class PersonItem(QtWidgets.QGraphicsPixmapItem):
         super().__init__()
         self.person = person
         self.coords = coords
-        self.setPixmap(utils.getPixmap('mk/players/{}.png'.format(person)))
-        if person == 'norowas':
+        self.setPixmap(utils.getPixmap('mk/players/{}.png'.format(person.hero.name.lower())))
+        if person.hero == player.Hero.Norowas:
             self.setOffset(-73, -180)
-        elif person == 'arythea':
+        elif person.hero == player.Hero.Arythea:
             self.setOffset(-43, -133)
-        elif person == 'goldyx':
+        elif person.hero == player.Hero.Goldyx:
             self.setOffset(-85, -140)
-        elif person == 'tovak':
+        elif person.hero == player.Hero.Tovak:
             self.setOffset(-120, -90)
+        else:
+            assert False
         self.setPos(coords.center())
         
     def move(self, coords):

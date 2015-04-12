@@ -34,7 +34,9 @@ class MainWindow(QtWidgets.QWidget):
         mainWindow = self
         
         from mageknight import match
-        self.match = match.Match()
+        players = [match.player.Player('Nameless Player', match.player.Hero.Norowas)]
+        self.match = match.Match(players)
+        self.adapter = match.MatchAdapter(self.match, players[0])  # @UndefinedVariable
         
         layout = QtWidgets.QHBoxLayout(self)
         layout.setSpacing(0)
@@ -45,15 +47,15 @@ class MainWindow(QtWidgets.QWidget):
         layout.addLayout(leftLayout, 1)
         
         from mageknight.gui import topbar, mapview, playerarea, playerstatus
-        self.topBar = topbar.TopBar(self.match)
+        self.topBar = topbar.TopBar(self.adapter)
         leftLayout.addWidget(self.topBar)
-        self.mapView = mapview.MapView(self, self.match)
+        self.mapView = mapview.MapView(self, self.adapter)
         leftLayout.addWidget(self.mapView, 1)
         
-        self.playerArea = playerarea.PlayerArea(self.match)
+        self.playerArea = playerarea.PlayerArea(self.adapter)
         leftLayout.addWidget(self.playerArea)
         
-        self.playerColumn = playerstatus.PlayerColumn(self.match)
+        self.playerColumn = playerstatus.PlayerColumn(self.adapter)
         layout.addWidget(self.playerColumn)
         
         self.resize(1000, 700)
@@ -76,7 +78,7 @@ class MainWindow(QtWidgets.QWidget):
         if viewId not in self._views:
             if viewId == 'fame':
                 from mageknight.gui import fameview
-                self._views[viewId] = fameview.FameView(self, self.match)
+                self._views[viewId] = fameview.FameView(self, self.adapter)
             elif viewId == 'cards':
                 from mageknight.gui import cardsview
                 self._views[viewId] = cardsview.CardsView(self)
