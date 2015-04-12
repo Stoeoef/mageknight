@@ -44,6 +44,7 @@ class PlayerStatus(QtWidgets.QFrame):
         self.player = player
         
         layout = QtWidgets.QVBoxLayout(self)
+        layout.setSpacing(0)
         nameLabel = QtWidgets.QLabel(player.name)
         layout.addWidget(nameLabel)
         
@@ -57,6 +58,10 @@ class PlayerStatus(QtWidgets.QFrame):
         rowLayout = QtWidgets.QHBoxLayout()
         layout.addLayout(rowLayout)
         rowLayout.addWidget(CardCountWidget(player))
+        
+        rowLayout = QtWidgets.QHBoxLayout()
+        layout.addLayout(rowLayout)
+        rowLayout.addWidget(PointsWidget(player))
         
         rowLayout = QtWidgets.QHBoxLayout()
         layout.addLayout(rowLayout)
@@ -207,4 +212,36 @@ class CardCountWidget(QtWidgets.QWidget):
         self.drawPileLabel.setText(str(self.player.drawPileCount))
         self.handCardLabel.setText(str(self.player.handCardCount))
         self.discardPileLabel.setText(str(self.player.discardPileCount))
+        
+    
+class PointsWidget(QtWidgets.QWidget):
+    def __init__(self, player):
+        super().__init__()
+        self.player = player
+        layout = QtWidgets.QHBoxLayout(self)
+        
+        toolTip = self.tr("Movement points")
+        label = QtWidgets.QLabel()
+        label.setPixmap(utils.getPixmap('mk/movement.png', QtCore.QSize(20, 20)))
+        label.setToolTip(toolTip)
+        layout.addWidget(label)
+        self.movementLabel = QtWidgets.QLabel()
+        self.movementLabel.setToolTip(toolTip)
+        layout.addWidget(self.movementLabel)
+        
+        toolTip = self.tr("Influence points")
+        label = QtWidgets.QLabel()
+        label.setPixmap(utils.getPixmap('mk/influence.png', QtCore.QSize(20, 20)))
+        label.setToolTip(toolTip)
+        layout.addWidget(label)
+        self.influenceLabel = QtWidgets.QLabel()
+        self.influenceLabel.setToolTip(toolTip)
+        layout.addWidget(self.influenceLabel)
+        
+        player.pointsChanged.connect(self._pointsChanged)
+        self._pointsChanged() # initialize
+    
+    def _pointsChanged(self):
+        self.movementLabel.setText(str(self.player.movementPoints))
+        self.influenceLabel.setText(str(self.player.influencePoints))
         

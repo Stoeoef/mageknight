@@ -104,6 +104,7 @@ class Player(QtCore.QObject):
     tacticChanged = QtCore.pyqtSignal(PlayerTactic)
     crystalsChanged = QtCore.pyqtSignal()
     cardCountChanged = QtCore.pyqtSignal()
+    pointsChanged = QtCore.pyqtSignal()
                                 
     def __init__(self, name, hero=None):
         super().__init__()
@@ -121,6 +122,8 @@ class Player(QtCore.QObject):
         self.handCardCount = 5
         self.drawPileCount = 11
         self.discardPileCount = 0
+        self.movementPoints = 0
+        self.influencePoints = 0
     
     @property
     def reputationModifier(self):
