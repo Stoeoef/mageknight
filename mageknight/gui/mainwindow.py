@@ -44,11 +44,15 @@ class MainWindow(QtWidgets.QWidget):
         leftLayout.setContentsMargins(0,0,0,0)
         layout.addLayout(leftLayout, 1)
         
-        from mageknight.gui import topbar, mapview, playerstatus
+        from mageknight.gui import topbar, mapview, playerarea, playerstatus
         self.topBar = topbar.TopBar(self.match)
         leftLayout.addWidget(self.topBar)
         self.mapView = mapview.MapView(self, self.match)
         leftLayout.addWidget(self.mapView, 1)
+        
+        self.playerArea = playerarea.PlayerArea(self.match)
+        leftLayout.addWidget(self.playerArea)
+        
         self.playerColumn = playerstatus.PlayerColumn(self.match)
         layout.addWidget(self.playerColumn)
         

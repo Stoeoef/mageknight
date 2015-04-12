@@ -47,6 +47,7 @@ def html(pixmap, attributes=''):
 
 
 def scalePixmap(pixmap, sizeOrX, y=None):
+    """Scale the given pixmap. The remaining parameters can be either a QSize or a tuple (width, height)."""
     if isinstance(sizeOrX, QtCore.QSize):
         size = sizeOrX
     else: size = QtCore.QSize(sizeOrX, y)
