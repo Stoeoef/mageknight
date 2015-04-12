@@ -24,18 +24,19 @@ from PyQt5 import QtCore, QtWidgets
 
 from mageknight import match as matchModule, utils
 
+
 class PlayerColumn(QtWidgets.QWidget):
-    """The PlayerColumn contains one PlayerArea for each player."""
+    """The PlayerColumn contains one PlayerStatus widget for each player."""
     def __init__(self, match):
         super().__init__()
         layout = QtWidgets.QVBoxLayout(self)
         for player in match.players:
-            layout.addWidget(PlayerArea(match, player))
+            layout.addWidget(PlayerStatus(match, player))
         layout.addStretch(1)
             
     
-class PlayerArea(QtWidgets.QFrame):
-    """A PlayerArea displays information about one player: name, level, fame, crystals and much more."""
+class PlayerStatus(QtWidgets.QFrame):
+    """A PlayerStatus widget displays information about one player: name, level, fame, crystals etc."""
     def __init__(self, match, player):
         super().__init__()
         self.setFrameShape(QtWidgets.QFrame.Box)
