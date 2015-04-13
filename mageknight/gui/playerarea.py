@@ -30,7 +30,7 @@ from mageknight.matchdata import cards
 
 class PlayerArea(QtWidgets.QWidget):
     """This area contains the player's skills, hand cards and units."""
-    def __init__(self, match):
+    def __init__(self, match, player):
         super().__init__()
         self.match = match
         
@@ -38,15 +38,16 @@ class PlayerArea(QtWidgets.QWidget):
         layout.setContentsMargins(0,0,0,0)
         self.view = QtWidgets.QGraphicsView()
         self.view.setAlignment(Qt.AlignLeft | Qt.AlignTop)
-        self.scene = PlayerAreaScene(match, self)
+        self.scene = PlayerAreaScene(match, player, self)
         self.view.setScene(self.scene)
         layout.addWidget(self.view)
         
         
 class PlayerAreaScene(QtWidgets.QGraphicsScene):
-    def __init__(self, match, parent):
+    def __init__(self, match, player, parent):
         super().__init__(parent)
         self.match = match
+        self.player = player
         self.setBackgroundBrush(QtGui.QBrush(Qt.darkGray))
         
         # Skills (maximum image size is 216x142)
@@ -66,8 +67,7 @@ class PlayerAreaScene(QtWidgets.QGraphicsScene):
         self.cards.setPos(self.skills.x() + self.skills.boundingRect().right() + 10, 0)
         self.addItem(self.cards)
         
-        for name in ['march']:
-            card = cards.getActionCard(name)
+        for card in player.handCards:
             item = CardItem(card, size)
             self.cards.addItem(item)
             

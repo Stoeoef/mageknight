@@ -24,7 +24,7 @@ import enum
 
 from mageknight import utils
 
-__all__ = ['EnemyType', 'AttackType', 'Attack', 'Enemy']
+__all__ = ['EnemyType', 'BlockType', 'AttackType', 'Attack', 'Enemy']
 
 
 class EnemyType(enum.Enum):
@@ -41,15 +41,31 @@ class EnemyType(enum.Enum):
         return utils.getPixmap('mk/enemies/{}_back.png'.format(self.name))
 
 
+# TODO: Move these, as they do not only concern enemies
+class AttackRange(enum.Enum):
+    """Range of a player attack."""
+    normal = 1
+    range = 2
+    siege = 3
+
+
+class BlockType(enum.Enum):
+    """The type of a block."""
+    physical = 1
+    fire = 2
+    ice = 3
+    coldFire = 4
+    
+    
 class AttackType(enum.Enum):
-    """The type of an enemy attack."""
+    """The type of an enemy or player attack."""
     physical = 1
     fire = 2
     ice = 3
     coldFire = 4
     summoner = 5
-
-
+    
+    
 class Attack:
     """An enemy attack. It consists of a type and a value. The value is either the amount of damage
     or -- if type == AttackType.summoner -- the EnemyType of the summoned enemy. *type* defaults to

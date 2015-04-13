@@ -35,6 +35,8 @@ def action(f):
         try:
             f(self, *args, **kwargs)
             self.stack.endMacro()
+        except CancelAction: # action was aborted e.g. by canceling a dialog
+            self.stack.abortMacro()
         except InvalidAction as e:
             print(e)
             self.stack.abortMacro()
@@ -52,15 +54,20 @@ class Match(QtCore.QObject):
         self.round = Round(1, RoundType.day)
         self.state = State.movement
         self.players = players
-        self.source = ManaSource(len(self.players)+2)
-        self.map = map.Map(MapShape.wedge)
-        self.effects = effects.EffectList()
+        self.source = ManaSource(self, len(self.players)+2)
+        self.map = map.Map(self, MapShape.wedge)
+        self.effects = effects.EffectList(self)
         
         for player in self.players:
+            player.match = self
             self.map.addPerson(player, hexcoords.HexCoords(0, 0))
             player.initDeedDeck()
             player.drawCards()
         self.currentPlayer = self.players[0]
+        
+    def nightRulesApply(self):
+        """Return whether night rules hold currently. This is true during nights, in dungeons, etc."""
+        return self.round.type == RoundType.night
         
     def terrainIsPassable(self, terrain):
         """Return whether the given terrain is currently passable for the current player. This might change
@@ -83,15 +90,32 @@ class Match(QtCore.QObject):
             raise ValueError("Terrain {} is not passable".format(terrain.name))
         return costs[terrain]
     
+    def hasMana(self, color, player=None):
+        if player is None:
+            player = self.currentPlayer
+        if player == self.currentPlayer:
+            effect = self.effects.find(effects.ManaTokens)
+            if effect is not None:
+                if color in effect:
+                    return True
+                if color.isBasic and Mana.gold in effect and not self.nightRulesApply():
+                    return True
+        if color.isBasic and player.crystals[color] > 0:
+            return True
+        return False
+        
     def _payMana(self, color):
         """Pay a mana of the given color and return whether this was possible. First try mana tokens, then
         gold mana (only during days), finally try to use a crystal.
         """
-        if self.effects.remove(effects.ManaTokens(color)):
-            return True
-        if color.isBasic and self.round.type == RoundType.day \
-            and self.effects.remove(effects.ManaTokens(Mana.gold)):
-            return True
+        effect = self.effects.find(effects.ManaTokens)
+        if effect is not None:
+            if color in effect:
+                self.effects.remove(effects.ManaTokens(color))
+                return True
+            if color.isBasic and self.round.type == RoundType.day and Mana.gold in effect:
+                self.effects.remove(effects.ManaTokens(Mana.gold))
+                return True
         if self.currentPlayer.crystals[color] > 0:
             self.currentPlayer.removeCrystal(color)
             return True
@@ -126,21 +150,22 @@ class Match(QtCore.QObject):
         terrain = self.map.terrainAt(coords)
         if terrain is None or not self.terrainIsPassable(terrain):
             raise InvalidAction("This field is not passable")
-        if not self.effects.remove(effects.MovePoints(self.getTerrainCost(terrain))):
+        costs = self.getTerrainCost(terrain)
+        if self.effects.movePoints < costs:
             raise InvalidAction("Not enough move points")
-        self.map.movePerson(player, coords)
+        if costs > 0:
+            self.effects.remove(effects.MovePoints(costs))
+        self.map.movePerson(player, coords) #TODO: this is not undoable yet
             
     @action
     def chooseSourceDie(self, player, index):
         if len(self.source) < self.source.count:
             raise InvalidAction("You cannot take more than one die") # TODO: improve this check
         color = self.source[index]
-        if self.round.type == RoundType.day and color == Mana.black:
-            raise InvalidAction("You must not use black mana during day rounds.")
-        if self.round.type == RoundType.night and color == Mana.gold:
-            raise InvalidAction("You must not use gold mana during night rounds.")
-        self.stack.push(stack.Call(self.source.remove, index),
-                        stack.Call(self.source.insert, index, color))
-        self.stack.push(stack.Call(self.effects.add, effects.ManaTokens(color)),
-                        stack.Call(self.effects.remove, effects.ManaTokens(color)))
+        if color == Mana.black and not self.nightRulesApply():
+            raise InvalidAction("You must not use black mana during day.")
+        if color == Mana.gold and self.nightRulesApply():
+            raise InvalidAction("You must not use gold mana during night.")
+        self.source.remove(index)
+        self.effects.add(effects.ManaTokens(color))
         

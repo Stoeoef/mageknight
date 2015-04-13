@@ -271,6 +271,7 @@ class UndoRedoAction(QtWidgets.QAction):
     def __init__(self, stack, redo):
         super().__init__(stack)
         self.setText('')
+        self.setEnabled(stack.canRedo() if redo else stack.canUndo())
         if redo:
             self.setShortcut(self.tr('Ctrl+Y'))
             self.setIcon(QtGui.QIcon.fromTheme('edit-redo'))

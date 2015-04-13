@@ -22,7 +22,7 @@
 
 import enum, random
 
-__all__ = ['InvalidAction', 'State', 'RoundType', 'Round', 'Mana']
+__all__ = ['InvalidAction', 'CancelAction', 'State', 'RoundType', 'Round', 'Mana']
 
 
 class InvalidAction(Exception):
@@ -33,6 +33,8 @@ class InvalidAction(Exception):
     def __str__(self):
         return "Invalid action: "+self.message
     
+class CancelAction(Exception):
+    pass
     
 class State(enum.Enum):
     # TODO: more states are necessary for e.g. pillaging, resting, level-up...

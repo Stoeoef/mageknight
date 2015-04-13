@@ -57,7 +57,7 @@ class MainWindow(QtWidgets.QWidget):
         mapAndEffectsLayout.addWidget(self.effectList)
         leftLayout.addLayout(mapAndEffectsLayout, 1)
         
-        self.playerArea = playerarea.PlayerArea(self.client)
+        self.playerArea = playerarea.PlayerArea(self.client, players[0])
         leftLayout.addWidget(self.playerArea)
         
         self.playerColumn = playerstatus.PlayerColumn(self.client)

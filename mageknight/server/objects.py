@@ -22,6 +22,7 @@
 
 from PyQt5 import QtCore
 
+from mageknight import stack
 from mageknight.matchdata import * # @UnusedWildImport
 
 
@@ -33,8 +34,9 @@ class ManaSource(QtCore.QObject):
     """ 
     changed = QtCore.pyqtSignal()
     
-    def __init__(self, count):
+    def __init__(self, match, count):
         super().__init__()
+        self.match = match
         self.count = count
         self._dice = None
         self.shuffle()
@@ -57,18 +59,24 @@ class ManaSource(QtCore.QObject):
         start)."""
         return sum(1 if die.isBasic else 0 for die in self._dice) >= self.count / 2
     
-    def insert(self, index, color):
+    def remove(self, index):
+        color = self._dice[index]
+        self.match.stack.push(stack.Call(self._remove, index),
+                              stack.Call(self._insert, index, color))
+        
+    def _insert(self, index, color):
         """Insert a die of the given color at the specified index."""
         self._dice.insert(index, color)
         self.changed.emit()
         
-    def remove(self, index):
+    def _remove(self, index):
         """Remove the die at the given index from the source."""
         self._dice.pop(index)
         self.changed.emit()
         
     def shuffle(self):
         """Shuffle all dice in the source according to the rules."""
+        self.match.stack.clear()
         while True:
             self._dice = [Mana.random() for _ in range(self.count)]
             if self.isValidAtRoundStart():
@@ -88,6 +96,7 @@ class Player(QtCore.QObject):
                                 
     def __init__(self, name, hero=None):
         super().__init__()
+        self.match = None
         self.name = name
         self.hero = hero
         self.tactic = PlayerTactic(Tactic.manaSteal)
@@ -119,21 +128,41 @@ class Player(QtCore.QObject):
         return REPUTATION_MODIFIERS[self.reputation - MIN_REPUTATION]
     
     def initDeedDeck(self):
-        names = ['march']
+        names = ['march', 'concentration', 'rage', 'crystallize']
         self.drawPile = [cards.getActionCard(name) for name in names]
         self.cardCountChanged.emit()
         
-    def drawCards(self):
-        count = min(self.cardLimit - self.handCardCount, self.drawPileCount)
+    def drawCards(self, count=None):
+        self.match.stack.clear()
+        if count is None:
+            count = self.cardLimit - self.handCardCount
+        count = min(count, self.drawPileCount)
         if count > 0:
             self.handCards.extend(self.drawPile[-count:])
             del self.drawPile[-count:]
             self.cardCountChanged.emit()
             self.handCardsChanged.emit()
-            
+        
+    def addCrystal(self, color):
+        assert color.isBasic
+        if self.crystals[color] < 3:
+            self.match.stack.push(stack.Call(self._addCrystal, color),
+                                  stack.Call(self._removeCrystal, color))
+        else:
+            self.match.effects.add(effects.ManaTokens(color))
+    
     def removeCrystal(self, color):
-        if color not in self.crystals:
-            raise ValueError("Cannot remove a crystal of color {} because I don't have any.".format(color))
+        assert color.isBasic and self.crystals[color] > 0
+        self.match.stack.push(stack.Call(self._removeCrystal, color),
+                              stack.Call(self._addCrystal, color))
+        
+    def _addCrystal(self, color):
+        assert self.crystals[color] < 3
+        self.crystals[color] += 1
+        self.crystalsChanged.emit()
+        
+    def _removeCrystal(self, color):
+        assert self.crystals[color] > 0
         self.crystals[color] -= 1
         self.crystalsChanged.emit()
         

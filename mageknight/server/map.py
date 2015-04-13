@@ -44,8 +44,9 @@ class Map(QtCore.QObject):
     enemiesChanged = QtCore.pyqtSignal(HexCoords)
     personChanged = QtCore.pyqtSignal(Player)
     
-    def __init__(self, shape):
+    def __init__(self, match, shape):
         super().__init__()
+        self.match = match
         assert isinstance(shape, MapShape)
         self.shape = shape
         self.tiles = {}
@@ -82,7 +83,7 @@ class Map(QtCore.QObject):
         else: return None
         
     def addShieldToken(self, player, coords):
-        """Add a shield token of the given player to the specifiey hex. The hex must be empty."""
+        """Add a shield token of the given player to the specified hex. The hex must be empty."""
         assert coords not in self.shieldTokens
         self.shieldTokens[coords] = player
         self.shieldTokenAdded.emit(coords)
