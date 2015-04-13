@@ -152,9 +152,6 @@ class CrystalsWidget(QtWidgets.QLabel):
         self.color = color
         player.crystalsChanged.connect(self._crystalsChanged)
         self._crystalsChanged() # initialize
-        
-        import random # TODO: remove
-        self.setCount(random.randint(0,3))
     
     def sizeHint(self):
         return self.SIZE

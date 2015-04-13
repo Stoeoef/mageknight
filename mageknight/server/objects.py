@@ -40,11 +40,11 @@ class ManaSource(QtCore.QObject):
         self.shuffle()
     
     # Methods required for a read-only list
-    def __len__(self, index):
+    def __len__(self):
         return len(self._dice)
     
     def __getitem__(self, index):
-        return self._dice(index)
+        return self._dice[index]
     
     def __contains__(self, object):
         return object in self._dice
@@ -55,7 +55,12 @@ class ManaSource(QtCore.QObject):
     def isValidAtRoundStart(self):
         """Return whether at least half of the dice show a basic colors (as required by the rules at round
         start)."""
-        return sum(1 if die.basic else 0 for die in self._dice) >= self.count / 2
+        return sum(1 if die.isBasic else 0 for die in self._dice) >= self.count / 2
+    
+    def remove(self, index):
+        """Remove the die at the given index from the source."""
+        self._dice.pop(index)
+        self.changed.emit()
         
     def shuffle(self):
         """Shuffle all dice in the source according to the rules."""
@@ -120,4 +125,10 @@ class Player(QtCore.QObject):
             del self.drawPile[-count:]
             self.cardCountChanged.emit()
             self.handCardsChanged.emit()
+            
+    def removeCrystal(self, color):
+        if color not in self.crystals:
+            raise ValueError("Cannot remove a crystal of color {} because I don't have any.".format(color))
+        self.crystals[color] -= 1
+        self.crystalsChanged.emit()
         

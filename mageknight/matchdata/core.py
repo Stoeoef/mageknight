@@ -69,7 +69,7 @@ class Mana(enum.Enum):
         return Mana(random.randint(1, 6))
     
     @property
-    def basic(self):
+    def isBasic(self):
         return self not in (Mana.gold, Mana.black)
     
     @staticmethod

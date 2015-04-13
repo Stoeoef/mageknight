@@ -52,6 +52,9 @@ class RoundWidget(QtWidgets.QLabel):
         
 
 class ManaSourceWidget(QtWidgets.QWidget):
+    """This widget displays the mana dice in the source. It always reserves enough space for all dice, even
+    if some of them are currently absent.
+    """
     SIZE = 30
     INNER_SPACE = 10
     OUTER_SPACE = 0
@@ -71,6 +74,7 @@ class ManaSourceWidget(QtWidgets.QWidget):
     
     def _sourceChanged(self):
         self._dice = list(self.match.source)
+        self.update()
         
     def sizeHint(self):
         count = self.match.source.count
@@ -86,7 +90,7 @@ class ManaSourceWidget(QtWidgets.QWidget):
             painter.drawPixmap(point, pixmap)
         
     def mouseReleaseEvent(self, event):
-        for i, manaDie in enumerate(self._dice):
+        for i in range(len(self._dice)):
             rect = QtCore.QRect(self.OUTER_SPACE + i*(self.SIZE+self.INNER_SPACE), self.OUTER_SPACE,
                                 self.SIZE, self.SIZE)
             if rect.contains(event.pos()):
@@ -94,6 +98,7 @@ class ManaSourceWidget(QtWidgets.QWidget):
             
         
 class ToggleViewAction(QtWidgets.QAction):
+    """An action that is used to show/hide a view (see MainWindow.getView)."""
     def __init__(self, parent, viewId, title):
         super().__init__(parent)
         self.viewId = viewId
@@ -120,6 +125,7 @@ class ToggleViewAction(QtWidgets.QAction):
         
     
 class ButtonBar(QtWidgets.QToolBar):
+    """The bar of buttons at the top."""
     def __init__(self, match):
         super().__init__()
         self.match = match

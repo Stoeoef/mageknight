@@ -25,14 +25,17 @@ import functools
 from PyQt5 import QtCore
 translate = QtCore.QCoreApplication.translate
 
-from .core import Mana
+from .core import Mana, InvalidAction
 
 
 @functools.total_ordering
 class Effect:
-    def combine(self, other):
+    def add(self, other):
         return False
     
+    def remove(self, other):
+        return False
+        
     def __lt__(self, other):
         return type(self).__name__ < type(other).__name__ # just some ordering that always stays the same
     
@@ -43,11 +46,23 @@ class Effect:
 class PointsEffect(Effect):
     def __init__(self, points):
         self.points = points
+    
+    def _changed(self, amount):
+        newPoints = self.points + amount
+        if newPoints == 0:
+            return None
+        elif newPoints < min(0, self.points): # allow negative numbers if bigger than current number 
+            return False # cannot pay
+        else: return type(self)(newPoints)
         
-    def combine(self, other):
+    def add(self, other):
         if type(self) is type(other):
-            self.points += other.points
-            return True
+            return self._changed(other.points)
+        else: return False
+    
+    def remove(self, other):
+        if type(self) is type(other):
+            return self._changed(-other.points)
         else: return False
         
     def __str__(self):
@@ -59,26 +74,66 @@ class PointsEffect(Effect):
     
 class MovePoints(PointsEffect):
     name = translate("Effects", "Move points")
+    
+    def __init__(self, points):
+        super().__init__(points)
+        if points < 0:
+            raise ValueError("Move points must not be negative.")
+        
         
 class InfluencePoints(PointsEffect):
     name = translate("Effects", "Influence points")
+    # note: influence points can be negative due to reputation
 
 
-class ManaToken(Effect):
-    def __init__(self, tokens):
-        self.tokens = tokens # mapping color->number
-        
-    def combine(self, other):
-        if isinstance(other, ManaToken):
-            for color, number in other.tokens.items():
-                if color in self.tokens:
-                    self.tokens[color] += number
-                else: self.tokens[color] = number
-            return True
-        else: return False
+class ManaTokens(Effect):
+    def __init__(self, tokens=None):
+        self._tokens = {} # mapping color->number
+        if isinstance(tokens, dict):
+            self._tokens.update(tokens)
+        elif isinstance(tokens, Mana):
+            self._tokens[tokens] = 1
+        else:
+            assert tokens is None
+             
+    def add(self, other):
+        if isinstance(other, ManaTokens):
+            _tokens = {}
+            for color in Mana:
+                count = self._tokens.get(color, 0) + other._tokens.get(color, 0)
+                if count > 0:
+                    _tokens[color] = count
+            effect = ManaTokens()
+            effect._tokens = _tokens
+            return effect
+        return False
+    
+    def remove(self, other):
+        if isinstance(other, ManaTokens):
+            _tokens = {}
+            for color in Mana:
+                count = self._tokens.get(color, 0) - other._tokens.get(color, 0)
+                if count > 0:
+                    _tokens[color] = count
+                elif count < 0:
+                    return False # cannot pay this mana
+            if len(_tokens) > 0:
+                effect = ManaTokens()
+                effect._tokens = _tokens
+                return effect
+            else: return None # nothing remaining
+        return False
         
     def __str__(self):
-        return ['{}: {}'.format(color.name, self.tokens[color]) for color in Mana].join(', ')
+        strings = ['{}: {}'.format(color.name, self._tokens[color])
+                   for color in Mana if color in self._tokens] 
+        return ', '.join(strings)
+    
+    def __contains__(self, key):
+        return key in self._tokens
+    
+    def __getitem__(self, key):
+        return self._tokens[key]
     
     
 class EffectList(QtCore.QObject):
@@ -90,8 +145,15 @@ class EffectList(QtCore.QObject):
         
     def add(self, effect):
         # first try to combine the effect with an existing one:
-        if any(e.combine(effect) for e in self._list):
+        for i, e in enumerate(self._list):
+            new = e.add(effect)
+            if new is False:
+                continue
+            elif new is not None:
+                self._list[i] = new
+            else: del self._list[i]
             self.changed.emit()
+            return
         else:
             # insert at the right position
             i = 0
@@ -101,8 +163,16 @@ class EffectList(QtCore.QObject):
             self.changed.emit()
         
     def remove(self, effect):
-        self._list.remove(effect)
-        self.changed.emit()
+        for i, e in enumerate(self._list):
+            new = e.remove(effect)
+            if new is False:
+                continue
+            elif new is not None:
+                self._list[i] = new
+            else: del self._list[i]
+            self.changed.emit()
+            return True
+        else: False
         
     def __iter__(self):
         return iter(self._list)
@@ -129,16 +199,3 @@ class EffectList(QtCore.QObject):
     @property
     def influencePoints(self):
         return sum(e.points for e in self._list if isinstance(e, InfluencePoints))
-            
-    def changeMovePoints(self, points):
-        newPoints = self.movePoints + points
-        if newPoints > 0:
-            effect = self.findEffect(MovePoints)
-            effect.points = newPoints
-            self.changed.emit()
-        elif newPoints == 0:
-            effect = self.findEffect(MovePoints)
-            if effect is not None:
-                self.remove(effect)
-        else: # newPoints < 0:
-            raise ValueError("Move points must not be less than 0.")
