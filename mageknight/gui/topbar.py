@@ -56,8 +56,9 @@ class ManaSourceWidget(QtWidgets.QWidget):
     INNER_SPACE = 10
     OUTER_SPACE = 0
     
-    def __init__(self, theMatch):
+    def __init__(self, match):
         super().__init__()
+        self.match = match
         self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
                                                  QtWidgets.QSizePolicy.Fixed))
         self._pixmaps = {
@@ -65,7 +66,6 @@ class ManaSourceWidget(QtWidgets.QWidget):
                            .scaled(self.SIZE, self.SIZE, Qt.KeepAspectRatio, Qt.SmoothTransformation)
                 for color in Mana
         }
-        self.match = theMatch
         self.match.source.changed.connect(self._sourceChanged)
         self._sourceChanged() # initialize
     
@@ -84,6 +84,13 @@ class ManaSourceWidget(QtWidgets.QWidget):
             pixmap = self._pixmaps[manaDie]
             point = QtCore.QPoint(self.OUTER_SPACE + i*(self.SIZE+self.INNER_SPACE), self.OUTER_SPACE)
             painter.drawPixmap(point, pixmap)
+        
+    def mouseReleaseEvent(self, event):
+        for i, manaDie in enumerate(self._dice):
+            rect = QtCore.QRect(self.OUTER_SPACE + i*(self.SIZE+self.INNER_SPACE), self.OUTER_SPACE,
+                                self.SIZE, self.SIZE)
+            if rect.contains(event.pos()):
+                self.match.chooseSourceDie(i)
             
         
 class ToggleViewAction(QtWidgets.QAction):

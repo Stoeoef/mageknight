@@ -74,7 +74,6 @@ class Player(QtCore.QObject):
     tacticChanged = QtCore.pyqtSignal(PlayerTactic)
     crystalsChanged = QtCore.pyqtSignal()
     cardCountChanged = QtCore.pyqtSignal()
-    pointsChanged = QtCore.pyqtSignal()
     handCardsChanged = QtCore.pyqtSignal()
                                 
     def __init__(self, name, hero=None):
@@ -92,9 +91,6 @@ class Player(QtCore.QObject):
         self.drawPile = []
         self.handCards = []
         self.discardPile = []
-        
-        self.movePoints = 0
-        self.influencePoints = 0
     
     @property
     def drawPileCount(self):
@@ -124,10 +120,4 @@ class Player(QtCore.QObject):
             del self.drawPile[-count:]
             self.cardCountChanged.emit()
             self.handCardsChanged.emit()
-            
-    def changeMovePoints(self, points):
-        if self.movePoints + points < 0:
-            raise ValueError("Move points must not be less than 0.")
-        self.movePoints += points
-        self.pointsChanged.emit()
         

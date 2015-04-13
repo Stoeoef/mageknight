@@ -36,7 +36,7 @@ class MainWindow(QtWidgets.QWidget):
         from mageknight.matchdata import Hero
         players = [server.Player('Nameless Player', Hero.Norowas)]
         self.match = server.Match(players)
-        self.adapter = client.LocalMatchClient(self.match, players[0])
+        self.client = client.LocalMatchClient(self.match, players[0])
         
         layout = QtWidgets.QHBoxLayout(self)
         layout.setSpacing(0)
@@ -46,16 +46,21 @@ class MainWindow(QtWidgets.QWidget):
         leftLayout.setContentsMargins(0,0,0,0)
         layout.addLayout(leftLayout, 1)
         
-        from mageknight.gui import topbar, mapview, playerarea, playerstatus
-        self.topBar = topbar.TopBar(self.adapter)
+        from mageknight.gui import topbar, mapview, playerarea, playerstatus, effectlist
+        self.topBar = topbar.TopBar(self.client)
         leftLayout.addWidget(self.topBar)
-        self.mapView = mapview.MapView(self, self.adapter)
-        leftLayout.addWidget(self.mapView, 1)
         
-        self.playerArea = playerarea.PlayerArea(self.adapter)
+        mapAndEffectsLayout = QtWidgets.QHBoxLayout()
+        self.mapView = mapview.MapView(self, self.client)
+        mapAndEffectsLayout.addWidget(self.mapView, 1)
+        self.effectList = effectlist.EffectList(self.client)
+        mapAndEffectsLayout.addWidget(self.effectList)
+        leftLayout.addLayout(mapAndEffectsLayout, 1)
+        
+        self.playerArea = playerarea.PlayerArea(self.client)
         leftLayout.addWidget(self.playerArea)
         
-        self.playerColumn = playerstatus.PlayerColumn(self.adapter)
+        self.playerColumn = playerstatus.PlayerColumn(self.client)
         layout.addWidget(self.playerColumn)
         
         self.resize(1000, 700)
@@ -78,7 +83,7 @@ class MainWindow(QtWidgets.QWidget):
         if viewId not in self._views:
             if viewId == 'fame':
                 from mageknight.gui import fameview
-                self._views[viewId] = fameview.FameView(self, self.adapter)
+                self._views[viewId] = fameview.FameView(self, self.client)
             elif viewId == 'cards':
                 from mageknight.gui import cardsview
                 self._views[viewId] = cardsview.CardsView(self)

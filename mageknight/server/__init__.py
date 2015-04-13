@@ -40,6 +40,7 @@ class Match(QtCore.QObject):
         self.players = players
         self.source = ManaSource(len(self.players)+2)
         self.map = map.Map(MapShape.wedge)
+        self.effects = effects.EffectList()
         
         for player in self.players:
             self.map.addPerson(player, hexcoords.HexCoords(0, 0))
@@ -71,10 +72,10 @@ class Match(QtCore.QObject):
         terrain = self.map.terrainAt(coords)
         if terrain is None or not self.terrainIsPassable(terrain):
             raise InvalidAction("This field is not passable")
-        if self.getTerrainCost(terrain) > self.currentPlayer.movePoints:
+        if self.getTerrainCost(terrain) > self.effects.movePoints:
             raise InvalidAction("Not enough move points")
         self.map.movePerson(player, coords)
-        self.currentPlayer.changeMovePoints(-self.getTerrainCost(terrain))
+        self.effects.changeMovePoints(-self.getTerrainCost(terrain))
         
     def terrainIsPassable(self, terrain):
         """Return whether the given terrain is currently passable for the current player. This might change

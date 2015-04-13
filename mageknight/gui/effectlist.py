@@ -20,13 +20,21 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-"""This module contains all sorts of constants, enums and immutable data structures used in Mage Knight.
-Import it using 'from mageknight.match.data import *'.
-"""
+from PyQt5 import QtWidgets
 
-from .core import *
-from .enemies import *
-from .map import *
-from .players import *
 
-from . import cards, effects
+class EffectList(QtWidgets.QListWidget):
+    def __init__(self, match):
+        super().__init__()
+        self.match = match
+        self.match.effects.changed.connect(self._update)
+        self._update()
+        
+    def _update(self):
+        self.clear()
+        for effect in self.match.effects:
+            item = QtWidgets.QListWidgetItem(str(effect))
+            self.addItem(item)
+        
+        
+        

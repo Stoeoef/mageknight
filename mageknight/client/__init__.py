@@ -66,6 +66,8 @@ class LocalMatchClient(Adapter):
     def playCard(self, card, effectNumber): pass
     @action
     def movePlayer(self, coords): pass
+    @action
+    def chooseSourceDie(self, index): pass 
 
         
 class ManaSourceAdapter(Adapter):

@@ -24,6 +24,7 @@ translate = QtCore.QCoreApplication.translate
 
 from mageknight import utils
 from .core import Mana
+from . import effects
 
 # TODO: __all__
 
@@ -51,10 +52,10 @@ class March(BasicAction):
     color = Mana.green
     
     def basicEffect(self, match, player):
-        player.changeMovePoints(2)
+        match.effects.add(effects.MovePoints(2))
         
     def strongEffect(self, match, player):
-        player.changeMovePoints(4)
+        match.effects.add(effects.MovePoints(4))
 
 
 class Stamina(BasicAction):
