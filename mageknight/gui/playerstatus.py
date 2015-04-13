@@ -22,7 +22,8 @@
 
 from PyQt5 import QtCore, QtWidgets
 
-from mageknight import match as matchModule, utils
+from mageknight import utils
+from mageknight.matchdata import Mana
 
 
 class PlayerColumn(QtWidgets.QWidget):
@@ -65,7 +66,7 @@ class PlayerStatus(QtWidgets.QFrame):
         
         rowLayout = QtWidgets.QHBoxLayout()
         layout.addLayout(rowLayout)
-        for color in matchModule.Mana.basicColors():
+        for color in Mana.basicColors():
             rowLayout.addWidget(CrystalsWidget(player, color))
         
 
@@ -220,7 +221,7 @@ class PointsWidget(QtWidgets.QWidget):
         self.player = player
         layout = QtWidgets.QHBoxLayout(self)
         
-        toolTip = self.tr("Movement points")
+        toolTip = self.tr("Move points")
         label = QtWidgets.QLabel()
         label.setPixmap(utils.getPixmap('mk/movement.png', QtCore.QSize(20, 20)))
         label.setToolTip(toolTip)
@@ -242,6 +243,6 @@ class PointsWidget(QtWidgets.QWidget):
         self._pointsChanged() # initialize
     
     def _pointsChanged(self):
-        self.movementLabel.setText(str(self.player.movementPoints))
+        self.movementLabel.setText(str(self.player.movePoints))
         self.influenceLabel.setText(str(self.player.influencePoints))
         

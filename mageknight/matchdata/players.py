@@ -22,14 +22,15 @@
 
 import enum
 
-from PyQt5 import QtCore
-
 from mageknight import utils
+from .core import RoundType
+
+__all__ = ['MIN_REPUTATION', 'MAX_REPUTATION', 'REPUTATION_MODIFIERS', 'Hero', 'Tactic', 'PlayerTactic']
 
 
 MIN_REPUTATION = -7
 MAX_REPUTATION = 7
-REPUTATION_MODIFIERS = ('X', -5, -3, -2, -1, -1, 0, 0, 0, 1, 1, 2, 2, 3, 5)  
+REPUTATION_MODIFIERS = ('X', -5, -3, -2, -1, -1, 0, 0, 0, 1, 1, 2, 2, 3, 5)
 
 
 class Hero(enum.Enum):
@@ -58,12 +59,11 @@ class Tactic(enum.Enum):
     
     @property
     def roundType(self):
-        from mageknight import match
         if self is Tactic.none:
             return None
         elif self.value <= 6:
-            return match.RoundType.day
-        else: return match.RoundType.night
+            return RoundType.day
+        else: return RoundType.night
     
     def pixmap(self, size=None):
         """Return a pixmap containing the tactic card."""
@@ -94,37 +94,3 @@ class PlayerTactic:
     
     def pixmap(self):
         return self.tactic.pixmap()
-
-    
-class Player(QtCore.QObject):
-    """A Mage Knight player. This class manages the player's status."""
-    levelChanged = QtCore.pyqtSignal(int)
-    fameChanged = QtCore.pyqtSignal(int)
-    reputationChanged = QtCore.pyqtSignal(int) # reputationPosition changed
-    tacticChanged = QtCore.pyqtSignal(PlayerTactic)
-    crystalsChanged = QtCore.pyqtSignal()
-    cardCountChanged = QtCore.pyqtSignal()
-    pointsChanged = QtCore.pyqtSignal()
-                                
-    def __init__(self, name, hero=None):
-        super().__init__()
-        self.name = name
-        self.hero = hero
-        self.tactic = PlayerTactic(Tactic.manaSteal)
-        self.level = 1
-        self.armor = 2
-        self.cardLimit = 5
-        self.fame = 0
-        self.reputation = 0
-        from mageknight import match
-        self.crystals = {color: 0 for color in match.Mana.basicColors()}
-        
-        self.handCardCount = 5
-        self.drawPileCount = 11
-        self.discardPileCount = 0
-        self.movementPoints = 0
-        self.influencePoints = 0
-    
-    @property
-    def reputationModifier(self):
-        return REPUTATION_MODIFIERS[self.reputation - MIN_REPUTATION]

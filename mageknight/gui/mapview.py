@@ -24,10 +24,11 @@ from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtCore import Qt
 
 from mageknight import hexcoords, utils
-from mageknight.match import map, player
+from mageknight.matchdata import Hero, Tile
 
 
 class MapView(QtWidgets.QGraphicsView):
+    """Displays the map. See MapModel."""
     def __init__(self, parent, match):
         super().__init__(parent)
         self.setScene(MapModel(parent, match))
@@ -43,6 +44,8 @@ class MapView(QtWidgets.QGraphicsView):
 
 
 class MapModel(QtWidgets.QGraphicsScene):
+    """This scene contains the map tiles and various items on top of it: players, enemies and shield tokens.
+    """
     def __init__(self, parent, match):
         super().__init__(parent) # parent is necessary or segfaults occur
         self.match = match
@@ -64,27 +67,27 @@ class MapModel(QtWidgets.QGraphicsScene):
     
     def _addAllTiles(self):
         """Debug method: Create a map containing all tiles."""
-        self.map.addTile(map.Tile('A'), hexcoords.HexCoords(0,0))
-        self.map.addTile(map.Tile('1'), hexcoords.HexCoords(1,3))
-        self.map.addTile(map.Tile('2'), hexcoords.HexCoords(3,2))
-        self.map.addTile(map.Tile('3'), hexcoords.HexCoords(2,6))
-        self.map.addTile(map.Tile('4'), hexcoords.HexCoords(4,5))
-        self.map.addTile(map.Tile('5'), hexcoords.HexCoords(6,4))
-        self.map.addTile(map.Tile('6'), hexcoords.HexCoords(3,9))
-        self.map.addTile(map.Tile('7'), hexcoords.HexCoords(5,8))
-        self.map.addTile(map.Tile('8'), hexcoords.HexCoords(7,7))
-        self.map.addTile(map.Tile('9'), hexcoords.HexCoords(9,6))
-        self.map.addTile(map.Tile('10'), hexcoords.HexCoords(4,12))
-        self.map.addTile(map.Tile('11'), hexcoords.HexCoords(6,11))
+        self.map.addTile(Tile('A'), hexcoords.HexCoords(0,0))
+        self.map.addTile(Tile('1'), hexcoords.HexCoords(1,3))
+        self.map.addTile(Tile('2'), hexcoords.HexCoords(3,2))
+        self.map.addTile(Tile('3'), hexcoords.HexCoords(2,6))
+        self.map.addTile(Tile('4'), hexcoords.HexCoords(4,5))
+        self.map.addTile(Tile('5'), hexcoords.HexCoords(6,4))
+        self.map.addTile(Tile('6'), hexcoords.HexCoords(3,9))
+        self.map.addTile(Tile('7'), hexcoords.HexCoords(5,8))
+        self.map.addTile(Tile('8'), hexcoords.HexCoords(7,7))
+        self.map.addTile(Tile('9'), hexcoords.HexCoords(9,6))
+        self.map.addTile(Tile('10'), hexcoords.HexCoords(4,12))
+        self.map.addTile(Tile('11'), hexcoords.HexCoords(6,11))
         
-        self.map.addTile(map.Tile('c1'), hexcoords.HexCoords(8,10))
-        self.map.addTile(map.Tile('c2'), hexcoords.HexCoords(10,9))
-        self.map.addTile(map.Tile('c3'), hexcoords.HexCoords(12,8))
-        self.map.addTile(map.Tile('c4'), hexcoords.HexCoords(5,15))
-        self.map.addTile(map.Tile('c5'), hexcoords.HexCoords(7,14))
-        self.map.addTile(map.Tile('c6'), hexcoords.HexCoords(9,13))
-        self.map.addTile(map.Tile('c7'), hexcoords.HexCoords(11,12))
-        self.map.addTile(map.Tile('c8'), hexcoords.HexCoords(13,11))
+        self.map.addTile(Tile('c1'), hexcoords.HexCoords(8,10))
+        self.map.addTile(Tile('c2'), hexcoords.HexCoords(10,9))
+        self.map.addTile(Tile('c3'), hexcoords.HexCoords(12,8))
+        self.map.addTile(Tile('c4'), hexcoords.HexCoords(5,15))
+        self.map.addTile(Tile('c5'), hexcoords.HexCoords(7,14))
+        self.map.addTile(Tile('c6'), hexcoords.HexCoords(9,13))
+        self.map.addTile(Tile('c7'), hexcoords.HexCoords(11,12))
+        self.map.addTile(Tile('c8'), hexcoords.HexCoords(13,11))
         
     def _tileAdded(self, coords):
         tileItem = TileItem(self.map.tiles[coords], coords)
@@ -189,13 +192,13 @@ class PersonItem(QtWidgets.QGraphicsPixmapItem):
         self.person = person
         self.coords = coords
         self.setPixmap(utils.getPixmap('mk/players/{}.png'.format(person.hero.name.lower())))
-        if person.hero == player.Hero.Norowas:
+        if person.hero == Hero.Norowas:
             self.setOffset(-73, -180)
-        elif person.hero == player.Hero.Arythea:
+        elif person.hero == Hero.Arythea:
             self.setOffset(-43, -133)
-        elif person.hero == player.Hero.Goldyx:
+        elif person.hero == Hero.Goldyx:
             self.setOffset(-85, -140)
-        elif person.hero == player.Hero.Tovak:
+        elif person.hero == Hero.Tovak:
             self.setOffset(-120, -90)
         else:
             assert False

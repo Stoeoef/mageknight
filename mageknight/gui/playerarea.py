@@ -24,7 +24,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt
 
 from mageknight import utils
-from mageknight.gui import stock
+from mageknight.gui import stock 
+from mageknight.matchdata import cards
 
 
 class PlayerArea(QtWidgets.QWidget):
@@ -37,16 +38,22 @@ class PlayerArea(QtWidgets.QWidget):
         layout.setContentsMargins(0,0,0,0)
         self.view = QtWidgets.QGraphicsView()
         self.view.setAlignment(Qt.AlignLeft | Qt.AlignTop)
-        layout.addWidget(self.view)
-        self.scene = QtWidgets.QGraphicsScene()
-        self.scene.setBackgroundBrush(QtGui.QBrush(Qt.darkGray))
+        self.scene = PlayerAreaScene(match, self)
         self.view.setScene(self.scene)
+        layout.addWidget(self.view)
+        
+        
+class PlayerAreaScene(QtWidgets.QGraphicsScene):
+    def __init__(self, match, parent):
+        super().__init__(parent)
+        self.match = match
+        self.setBackgroundBrush(QtGui.QBrush(Qt.darkGray))
         
         # Skills (maximum image size is 216x142)
         size = QtCore.QSize(76, 50)
         self.skills = stock.Stock(size)
         self.skills.setColumnCount(1)
-        self.scene.addItem(self.skills)
+        self.addItem(self.skills)
         
         for skill in ['norowas_1', 'norowas_2', 'norowas_3']:
             item = SkillItem(skill, size)
@@ -57,10 +64,10 @@ class PlayerArea(QtWidgets.QWidget):
         self.cards = stock.Stock(size)
         self.cards.setColumnCount(5)
         self.cards.setPos(self.skills.x() + self.skills.boundingRect().right() + 10, 0)
-        self.scene.addItem(self.cards)
+        self.addItem(self.cards)
         
-        for card in ['basic_actions/march', 'basic_actions/stamina', 'basic_actions/concentration',
-                     'basic_actions/rage', 'basic_actions/crystallize', 'basic_actions/swiftness']:
+        for name in ['march']:
+            card = cards.getActionCard(name)
             item = CardItem(card, size)
             self.cards.addItem(item)
             
@@ -69,10 +76,10 @@ class PlayerArea(QtWidgets.QWidget):
         self.units = stock.Stock(size)
         self.units.setColumnCount(3)
         self.units.setPos(self.cards.x() + self.cards.boundingRect().right() + 40, 0)
-        self.scene.addItem(self.units)
+        self.addItem(self.units)
         
         for unit in ['regular_units/peasants', 'regular_units/foresters', 'regular_units/northern_monks']:
-            item = CardItem(unit, size)
+            item = UnitItem(unit, size)
             self.units.addItem(item)
 
 
@@ -94,6 +101,9 @@ class GraphicsPixmapObject(QtWidgets.QGraphicsObject):
     
     def paint(self, painter, option, widget):
         painter.drawPixmap(0, 0, self._scaled)
+        
+    def scaleFactor(self):
+        return min(self._scaled.width() / self.pixmap.width(), self._scaled.height() / self.pixmap.height())
 
 
 # Use different subclasses to implement stuff like used/wounded units etc.
@@ -103,8 +113,21 @@ class SkillItem(GraphicsPixmapObject):
         
 
 class CardItem(GraphicsPixmapObject):
-    def __init__(self, card, size): # TODO: currently *card* is just a string
-        super().__init__(utils.getPixmap('mk/cards/'+card+'.jpg'), size)
+    """This item displays a deed card and allows the user to choose one of the effects of the card."""
+    def __init__(self, card, size):
+        super().__init__(card.pixmap(), size)
+        self.card = card
+    
+    def mousePressEvent(self, event):
+        event.accept()
+        
+    def mouseReleaseEvent(self, event):
+        # TODO: Currently this supports only action cards
+        if 295*self.scaleFactor() < event.pos().y() < 395*self.scaleFactor():
+            self.scene().match.playCard(self.card, 0)
+        elif 395*self.scaleFactor() < event.pos().y() < 495*self.scaleFactor():
+            self.scene().match.playCard(self.card, 1)
+        event.accept()
         
     
 class UnitItem(GraphicsPixmapObject):

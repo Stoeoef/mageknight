@@ -17,21 +17,16 @@
 # GNU General Public License for more details.
 # 
 # You should have received a copy of the GNU General Public License
-# 
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 
-from mageknight.match.data import InvalidAction
- 
- 
-class MatchAdapter:
-    def __init__(self, match, player):
-        self._match = match
-        self._player = player
-        
-    def __getattr__(self, attr):
-        return getattr(self._match, attr)
-    
-    def movePlayer(self, coords):
-        try:
-            self._match.movePlayer(self._player, coords)
-        except InvalidAction as e:
-            print(e)
+"""This module contains all sorts of constants, enums and immutable data structures used in Mage Knight.
+Import it using 'from mageknight.match.data import *'.
+"""
+
+from .core import *
+from .enemies import *
+from .map import *
+from .players import *
+
+from . import cards

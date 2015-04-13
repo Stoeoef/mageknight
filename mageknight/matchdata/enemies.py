@@ -24,7 +24,11 @@ import enum
 
 from mageknight import utils
 
+__all__ = ['EnemyType', 'AttackType', 'Attack', 'Enemy']
+
+
 class EnemyType(enum.Enum):
+    """A type (i.e. color) of an enemy token."""
     maraudingOrcs = 1
     keep = 2
     dungeon = 3
@@ -33,6 +37,7 @@ class EnemyType(enum.Enum):
     city = 6
     
     def pixmap(self):
+        """Return the back side of the enemy tokens of this type."""
         return utils.getPixmap('mk/enemies/{}_back.png'.format(self.name))
 
 
@@ -122,6 +127,6 @@ class Enemy:
             setattr(self, attr, attr in data[5:])
         
     def pixmap(self):
+        """Return the front side of this enemy token."""
         return utils.getPixmap('mk/enemies/{}_{}.png'.format(self.type.name, self.id))
-    
     

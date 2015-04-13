@@ -23,7 +23,9 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt 
 
-from mageknight import match, utils
+from mageknight import utils
+from mageknight.matchdata import Mana
+
 
 class TopBar(QtWidgets.QWidget):
     def __init__(self, match):
@@ -61,7 +63,7 @@ class ManaSourceWidget(QtWidgets.QWidget):
         self._pixmaps = {
            color: utils.getPixmap('mk/mana/die_{}.png'.format(color.name))
                            .scaled(self.SIZE, self.SIZE, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-                for color in match.Mana
+                for color in Mana
         }
         self.match = theMatch
         self.match.source.changed.connect(self._sourceChanged)

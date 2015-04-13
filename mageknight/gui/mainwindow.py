@@ -21,7 +21,6 @@
 #
 
 from PyQt5 import QtWidgets
-from PyQt5.QtCore import Qt
 
 mainWindow = None # mainWindow instance
 
@@ -33,10 +32,11 @@ class MainWindow(QtWidgets.QWidget):
         global mainWindow
         mainWindow = self
         
-        from mageknight import match
-        players = [match.player.Player('Nameless Player', match.player.Hero.Norowas)]
-        self.match = match.Match(players)
-        self.adapter = match.MatchAdapter(self.match, players[0])  # @UndefinedVariable
+        from mageknight import client, server
+        from mageknight.matchdata import Hero
+        players = [server.Player('Nameless Player', Hero.Norowas)]
+        self.match = server.Match(players)
+        self.adapter = client.LocalMatchClient(self.match, players[0])
         
         layout = QtWidgets.QHBoxLayout(self)
         layout.setSpacing(0)

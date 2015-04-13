@@ -21,12 +21,10 @@
 #
 
 import enum
- 
-from PyQt5 import QtCore
 
-from mageknight import utils
-from mageknight.match import player 
-from mageknight.hexcoords import HexCoords
+from mageknight import hexcoords, utils
+
+__all__ = ['MapShape', 'Terrain', 'Site', 'Tile']
 
 
 class MapShape(enum.Enum):
@@ -148,7 +146,7 @@ class Tile:
         neighbors, starting with the top-right one and continuing in clockwise order."""
         if coords.x == 0 and coords.y == 0:
             return 0
-        else: return 1 + HexCoords(0, 0).neighbors().index(coords)
+        else: return 1 + hexcoords.HexCoords(0, 0).neighbors().index(coords)
     
     def terrainAt(self, coords):
         """Return the terrain at the given coords, assuming this tile sits at (0,0)."""
@@ -159,114 +157,3 @@ class Tile:
         """Return the site at the given coords, assuming this tile sits at (0,0)."""
         sites = self._sites[self.id]
         return sites[self._fieldIndex(coords)]
-        
-        
-class Map(QtCore.QObject):
-    """Model for the map of a Mage Knight match.
-    Public (read-only) attributes are:
-        
-        - shape: the MapShape specified in the constructor.
-        - tiles: dict mapping HexCoords to Tiles. The coordinates always refer to the center hex of the tile.
-        - shieldTokens: dict mapping HexCoords to a Player whose shield token is at this positionj
-        - enemies: dict mapping HexCoords to a list of enemies at this position.
-        - persons: dict mapping Persons to HexCoords (the mapping direction is swapped, because persons
-                   typically move on the map) 
-    
-    """
-    tileAdded = QtCore.pyqtSignal(HexCoords)
-    shieldTokenAdded = QtCore.pyqtSignal(HexCoords)
-    enemiesChanged = QtCore.pyqtSignal(HexCoords)
-    personChanged = QtCore.pyqtSignal(player.Player)
-    
-    def __init__(self, shape):
-        super().__init__()
-        assert isinstance(shape, MapShape)
-        self.shape = shape
-        self.tiles = {}
-        self.shieldTokens = {}
-        self.enemies = {}
-        self.persons = {}
-
-    def addTile(self, tile, coords):
-        """Add a tile at the given hex coordinates. *coords* must point to an empty center hex
-        (see isTileCenter).
-        """
-        assert isTileCenter(coords)
-        assert coords not in self.tiles
-        self.tiles[coords] = tile
-        self.tileAdded.emit(coords)
-        
-    def tileAt(self, coords):
-        """Return the tile at the given hex (contrary to self.tiles[coords] this works even if *coords* does
-        not point to the center of the tile)."""
-        return self.tiles.get(tileCenter(coords))
-        
-    def terrainAt(self, coords):
-        """Return the terrain of the given hex. Returns None if there is no tile at this position."""
-        tile = self.tileAt(coords)
-        if tile is not None:
-            return tile.terrainAt(coords-tileCenter(coords))
-        else: return None
-        
-    def siteAt(self, coords):
-        """Return the site on the given hex. Returns None if there is no tile at this position."""
-        tile = self.tileAt(coords)
-        if tile is not None:
-            return tile.siteAt(coords-tileCenter(coords))
-        else: return None
-        
-    def addShieldToken(self, player, coords):
-        """Add a shield token of the given player to the specifiey hex. The hex must be empty."""
-        assert coords not in self.shieldTokens
-        self.shieldTokens[coords] = player
-        self.shieldTokenAdded.emit(coords)
-        
-    def addEnemy(self, enemy, coords):
-        """Add an enemy to the specified hex field. Each hex can contain arbitrary many enemies."""
-        if coords not in self.enemies:
-            self.enemies[coords] = []
-        self.enemies[coords].append(enemy)
-        self.enemiesChanged.emit(coords)
-        
-    def removeEnemy(self, enemy, coords):
-        """Remove the given enemy from the specified hex."""
-        try:
-            self.enemies[coords].remove(enemy)
-        except (KeyError, ValueError):
-            raise ValueError("There is no enemy {} at {}.".format(enemy, coords))
-        self.enemiesChanged.emit(coords)
-        
-    def addPerson(self, person, coords):
-        """Add the given person to the specified hex."""
-        assert person not in self.persons
-        self.persons[person] = coords
-        self.personChanged.emit(person)
-    
-    def removePerson(self, person):
-        """Remove the given person from the map."""
-        del self.persons[person]
-        self.personChanged.emit(person)
-        
-    def movePerson(self, person, coords):
-        """Move the given person to the specified hex."""
-        self.persons[person] = coords
-        self.personChanged.emit(person)
-
-
-def isTileCenter(coords):
-    """Return whether *coords* are the coordinates of the center hex of a tile."""
-    # tile centers are coordinates of the form n * (2,-1) + m * (1,3) with n,m ∈ ℕ
-    # a little calculation leads to these conditions
-    return (3*coords.x - coords.y) % 7 == 0 and (coords.x + 2*coords.y) % 7 == 0
-
-
-def tileCenter(coords):
-    """Get the coordinates of the center of the tile at the given coordinates."""
-    if isTileCenter(coords):
-        return coords
-    else:
-        for n in coords.neighbors():
-            if isTileCenter(n):
-                return n
-    assert False
-    

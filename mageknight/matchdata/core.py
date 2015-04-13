@@ -22,7 +22,25 @@
 
 import enum, random
 
+__all__ = ['InvalidAction', 'State', 'RoundType', 'Round', 'Mana']
 
+
+class InvalidAction(Exception):
+    """Use this exception, when the user tries to perform an action that is not allowed by the rules."""
+    def __init__(self, message):
+        self.message = message
+        
+    def __str__(self):
+        return "Invalid action: "+self.message
+    
+    
+class State(enum.Enum):
+    # TODO: more states are necessary for e.g. pillaging, resting, level-up...
+    init = 1
+    movement = 2
+    action = 3
+    
+    
 class RoundType(enum.Enum):
     """Each round is either day or night."""
     day = 1
@@ -57,13 +75,3 @@ class Mana(enum.Enum):
     @staticmethod
     def basicColors():
         return (Mana.red, Mana.blue, Mana.green, Mana.white)
-
-
-class InvalidAction(Exception):
-    """Use this exception, when the user tries to perform an action that is not allowed by the rules."""
-    def __init__(self, message):
-        self.message = message
-        
-    def __str__(self):
-        return "Invalid action: "+self.message
-    

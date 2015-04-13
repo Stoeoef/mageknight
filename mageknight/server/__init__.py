@@ -17,24 +17,14 @@
 # GNU General Public License for more details.
 # 
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-
-import enum
+# 
 
 from PyQt5 import QtCore
 
 from mageknight import stack, hexcoords
-from mageknight.match import player, map, enemies
-from mageknight.match.data import RoundType, Round, Mana, InvalidAction
-from mageknight.match.adapter import MatchAdapter
-
-
-class State(enum.Enum):
-    # TODO: more states are necessary for e.g. pillaging, resting, level-up...
-    init = 1
-    movement = 2
-    action = 3
+from mageknight.matchdata import *
+from .objects import ManaSource, Player
+from .map import Map
 
 
 class Match(QtCore.QObject):
@@ -49,11 +39,28 @@ class Match(QtCore.QObject):
         self.state = State.movement
         self.players = players
         self.source = ManaSource(len(self.players)+2)
-        self.map = map.Map(map.MapShape.wedge)
+        self.map = map.Map(MapShape.wedge)
+        
         for player in self.players:
             self.map.addPerson(player, hexcoords.HexCoords(0, 0))
+            player.initDeedDeck()
+            player.drawCards()
+        self.currentPlayer = self.players[0]
     
+    def playCard(self, player, card, effectNumber):
+        if isinstance(card, cards.ActionCard):
+            if effectNumber == 0:
+                card.basicEffect(self, player)
+            elif effectNumber == 1:
+                card.strongEffect(self, player)
+            else: raise ValueError("Invalid effect number for card '{}': {}".format(card.name, effectNumber))
+            # TODO: remove card
+        
     def movePlayer(self, player, coords):
+        """Move the given player to the specified hex. Use this method only for standard moves in the
+        movement phase, not for Flight, Underground Travel and similar special effects. The player's
+        move points will be reduced appropriately.
+        """
         if not self.state == State.movement:
             raise InvalidAction("Can only move during movement phase.")
         pos = self.map.persons[player]
@@ -64,51 +71,29 @@ class Match(QtCore.QObject):
         terrain = self.map.terrainAt(coords)
         if terrain is None or not self.terrainIsPassable(terrain):
             raise InvalidAction("This field is not passable")
+        if self.getTerrainCost(terrain) > self.currentPlayer.movePoints:
+            raise InvalidAction("Not enough move points")
         self.map.movePerson(player, coords)
+        self.currentPlayer.changeMovePoints(-self.getTerrainCost(terrain))
         
     def terrainIsPassable(self, terrain):
         """Return whether the given terrain is currently passable for the current player. This might change
         as an effect of e.g. spells."""
         assert isinstance(terrain, map.Terrain)
         return terrain not in (map.Terrain.lake, map.Terrain.mountain)
-        
-        
-class ManaSource(QtCore.QObject):
-    """The mana source contains the mana dice available to all players. It behaves like a read-only list, so 
-    e.g. 'len(source)' and 'source[2]' work as expected. The additional attribute 'count' stores the initial
-    number of dice in the source (typically number of players + 2). The number returned by len(source) can
-    be lower due to e.g. Mana Steal.
-    """ 
-    changed = QtCore.pyqtSignal()
     
-    def __init__(self, count):
-        super().__init__()
-        self.count = count
-        self._dice = None
-        self.shuffle()
-    
-    # Methods required for a read-only list
-    def __len__(self, index):
-        return len(self._dice)
-    
-    def __getitem__(self, index):
-        return self._dice(index)
-    
-    def __contains__(self, object):
-        return object in self._dice
-    
-    def __iter__(self):
-        return iter(self._dice)
-    
-    def isValidAtRoundStart(self):
-        """Return whether at least half of the dice show a basic colors (as required by the rules at round
-        start)."""
-        return sum(1 if die.basic else 0 for die in self._dice) >= self.count / 2
-        
-    def shuffle(self):
-        """Shuffle all dice in the source according to the rules."""
-        while True:
-            self._dice = [Mana.random() for _ in range(self.count)]
-            if self.isValidAtRoundStart():
-                break
-        self.changed.emit()
+    def getTerrainCost(self, terrain):
+        """Return the current cost of the given terrain."""
+        costs = {
+            map.Terrain.plains: 2,
+            map.Terrain.hills: 3,
+            map.Terrain.forest: 3 if self.round.type == RoundType.day else 5,
+            map.Terrain.wasteland: 4,
+            map.Terrain.desert: 5 if self.round.type == RoundType.day else 3,
+            map.Terrain.swamp: 5,
+            map.Terrain.city: 2,
+        }
+        if terrain not in costs:
+            raise ValueError("Terrain {} is not passable".format(terrain.name))
+        return costs[terrain]
+
