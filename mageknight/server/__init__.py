@@ -27,9 +27,18 @@ from .objects import ManaSource, Player
 from .map import Map
 
 
-# use this to mark player actions
+# use this to wrap player actions
 # TODO: Check for current player
-def action(f): return f
+def action(f):
+    def wrap(self, *args, **kwargs):
+        self.stack.beginMacro()
+        try:
+            f(self, *args, **kwargs)
+            self.stack.endMacro()
+        except InvalidAction as e:
+            print(e)
+            self.stack.abortMacro()
+    return wrap
 
 
 class Match(QtCore.QObject):
@@ -75,6 +84,9 @@ class Match(QtCore.QObject):
         return costs[terrain]
     
     def _payMana(self, color):
+        """Pay a mana of the given color and return whether this was possible. First try mana tokens, then
+        gold mana (only during days), finally try to use a crystal.
+        """
         if self.effects.remove(effects.ManaTokens(color)):
             return True
         if color.isBasic and self.round.type == RoundType.day \
@@ -127,6 +139,8 @@ class Match(QtCore.QObject):
             raise InvalidAction("You must not use black mana during day rounds.")
         if self.round.type == RoundType.night and color == Mana.gold:
             raise InvalidAction("You must not use gold mana during night rounds.")
-        self.source.remove(index)
-        self.effects.add(effects.ManaTokens(color))
+        self.stack.push(stack.Call(self.source.remove, index),
+                        stack.Call(self.source.insert, index, color))
+        self.stack.push(stack.Call(self.effects.add, effects.ManaTokens(color)),
+                        stack.Call(self.effects.remove, effects.ManaTokens(color)))
         

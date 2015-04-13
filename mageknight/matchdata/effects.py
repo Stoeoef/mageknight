@@ -125,9 +125,9 @@ class ManaTokens(Effect):
         return False
         
     def __str__(self):
-        strings = ['{}: {}'.format(color.name, self._tokens[color])
+        strings = ['{}x {}'.format(self._tokens[color], color.name)
                    for color in Mana if color in self._tokens] 
-        return ', '.join(strings)
+        return translate('Effects', 'Mana: ') + ', '.join(strings)
     
     def __contains__(self, key):
         return key in self._tokens

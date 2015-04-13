@@ -133,3 +133,11 @@ class ButtonBar(QtWidgets.QToolBar):
         for view, title in mainwindow.mainWindow.availableViews(): # @UndefinedVariable
             self.addAction(ToggleViewAction(self, view, title))
             
+        stretch = QtWidgets.QWidget()
+        stretch.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
+        self.addWidget(stretch)
+
+        self.addAction(self.match.stack.createUndoAction())
+        self.addAction(self.match.stack.createRedoAction())
+        
+            

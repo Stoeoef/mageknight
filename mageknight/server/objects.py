@@ -57,6 +57,11 @@ class ManaSource(QtCore.QObject):
         start)."""
         return sum(1 if die.isBasic else 0 for die in self._dice) >= self.count / 2
     
+    def insert(self, index, color):
+        """Insert a die of the given color at the specified index."""
+        self._dice.insert(index, color)
+        self.changed.emit()
+        
     def remove(self, index):
         """Remove the die at the given index from the source."""
         self._dice.pop(index)
