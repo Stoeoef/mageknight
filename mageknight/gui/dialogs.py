@@ -76,8 +76,15 @@ def chooseManaColor(match=None, available=False, basic=True, fromList=None):
     return choose(colors) # TODO: implement a nicer dialog, using crystal icons
 
 
-def chooseCard(player, type=None):
-    cards = [card for card in player.handCards if type is None or isinstance(card, type)]
+def chooseCard(player, type=None, allowWounds=False):
+    from mageknight.core import cards as cardsModule
+    cards = []
+    for card in player.handCards:
+        if type is not None and not isinstance(card, type):
+            continue
+        if isinstance(card, cardsModule.Wound) and not allowWounds:
+            continue
+        cards.append(card)
     if len(cards) > 0:
         return choose(cards)
-    else: raise InvalidAction("You don't have a card")
+    else: raise InvalidAction("You don't have a suitable card")

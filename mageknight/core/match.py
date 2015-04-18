@@ -125,13 +125,14 @@ class Match(QtCore.QObject):
     def playCard(self, player, card, effectNumber):
         if isinstance(card, cards.ActionCard):
             if effectNumber == 0:
+                #player.removeCard(card) # TODO: disabled to make debugging life easier
                 card.basicEffect(self, player)
             elif effectNumber == 1:
                 if self._payMana(card.color):
+                    #player.removeCard(card) # TODO: see above
                     card.strongEffect(self, player)
                 else: raise InvalidAction("Cannot pay mana cost")
             else: raise ValueError("Invalid effect number for card '{}': {}".format(card.name, effectNumber))
-            # TODO: remove card
         
     @action
     def movePlayer(self, player, coords):

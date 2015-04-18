@@ -24,8 +24,8 @@ from . import baseplayer, cards
 
 class Player(baseplayer.Player):                                
     def initDeedDeck(self):
-        names = ['battle_versatility', 'concentration', 'rage', 'crystallize'] #TODO: 
-        self.drawPile = [cards.getActionCard(name) for name in names]
+        names = ['improvisation', 'concentration', 'rage', 'crystallize'] #TODO: 
+        self.drawPile = [cards.get(name) for name in names]
         self.cardCountChanged.emit()
         
     def drawCards(self, count=None):

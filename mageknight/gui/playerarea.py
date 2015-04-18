@@ -65,10 +65,8 @@ class PlayerAreaScene(QtWidgets.QGraphicsScene):
         self.cards.setColumnCount(5)
         self.cards.setPos(self.skills.x() + self.skills.boundingRect().right() + 10, 0)
         self.addItem(self.cards)
-        
-        for card in player.handCards:
-            item = CardItem(card, size)
-            self.cards.addItem(item)
+        player.handCardsChanged.connect(self._updateHandCards)
+        self._updateHandCards()
             
         # Units
         size = QtCore.QSize(107, 150)
@@ -80,6 +78,15 @@ class PlayerAreaScene(QtWidgets.QGraphicsScene):
         for unit in ['regular_units/peasants', 'regular_units/foresters', 'regular_units/northern_monks']:
             item = UnitItem(unit, size)
             self.units.addItem(item)
+        
+    def _updateHandCards(self):
+        for item in self.cards.items():
+            if item.card not in self.player.handCards:
+                self.cards.removeItem(item)
+        for i, card in enumerate(self.player.handCards):
+            items = self.cards.items()
+            if i >= len(items) or items[i].card != card:
+                self.cards.insertItem(i, CardItem(card, self.cards.objectSize))
 
 
 class GraphicsPixmapObject(QtWidgets.QGraphicsObject):

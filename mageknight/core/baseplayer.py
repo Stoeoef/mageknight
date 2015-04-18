@@ -95,4 +95,17 @@ class Player(QtCore.QObject):
         assert self.crystals[color] > 0
         self.crystals[color] -= 1
         self.crystalsChanged.emit()
+        
+    def removeCard(self, card):
+        index = self.handCards.index(card)
+        self.match.stack.push(stack.Call(self._removeCard, card),
+                              stack.Call(self._insertCard, index, card))
+    
+    def _insertCard(self, index, card):
+        self.handCards.insert(index, card)
+        self.handCardsChanged.emit()
+        
+    def _removeCard(self, card):
+        self.handCards.remove(card)
+        self.handCardsChanged.emit()
     

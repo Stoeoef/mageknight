@@ -202,3 +202,8 @@ class Concentration(Effect):
         self.extra = extra
     
     
+# TODO: implement
+class ColdToughness(Effect):
+    pass
+    
+    
