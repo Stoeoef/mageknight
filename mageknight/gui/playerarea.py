@@ -135,7 +135,16 @@ class CardItem(GraphicsPixmapObject):
             self.scene().match.playCard(self.card, 1)
         event.accept()
         
-    
+    def contextMenuEvent(self, event):
+        menu = QtWidgets.QMenu()
+        for effect in self.scene().match.sidewaysEffects():
+            menu.addAction(str(effect))
+        selectedAction = menu.exec_(event.screenPos())
+        if selectedAction is not None:
+            index = menu.actions().index(selectedAction)
+            self.scene().match.playSideways(self.card, index)
+
+
 class UnitItem(GraphicsPixmapObject):
     def __init__(self, unit, size): # TODO: currently *unit* is just a string
         super().__init__(utils.getPixmap('mk/cards/'+unit+'.jpg'), size)

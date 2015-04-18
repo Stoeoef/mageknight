@@ -160,16 +160,37 @@ class Match(QtCore.QObject):
         return color
 
     @action
-    def playCard(self, player, card, effectNumber):
+    def playCard(self, player, card, effectIndex=0):
+        """Play the given card. For cards with several actions, *effectIndex* determines which action
+        to play (e.g. 0 for basic effect and 1 for strong effect of action cards).
+        """
         if isinstance(card, cards.ActionCard):
-            if effectNumber == 0:
+            if effectIndex == 0:
                 #player.removeCard(card) # TODO: disabled to make debugging life easier
                 card.basicEffect(self, player)
-            elif effectNumber == 1:
+            elif effectIndex == 1:
                 self.payMana(card.color)
                 #player.removeCard(card) # TODO: see above
                 card.strongEffect(self, player)
-            else: raise ValueError("Invalid effect number for card '{}': {}".format(card.name, effectNumber))
+            else: raise ValueError("Invalid effect number for card '{}': {}".format(card.name, effectIndex))
+        
+    def sidewaysEffects(self):
+        """Return all effects that can be achieved by playing a card sideways (might change due to skills).
+        """
+        options = [effects.MovePoints(1),
+                   effects.InfluencePoints(1),
+                   effects.AttackPoints(1),
+                   effects.BlockPoints(1)
+                   ]
+        return options
+    
+    @action
+    def playSideways(self, player, card, effectIndex):
+        """Play the given card sideways. *effectIndex* is the index of the desired effect from
+        self.sidewaysEffects()."""
+        effect = self.sidewaysEffects()[effectIndex]
+        #player.removeCard(card) # TODO: disabled to make debugging life easier
+        self.effects.add(effect)
         
     @action
     def movePlayer(self, player, coords):

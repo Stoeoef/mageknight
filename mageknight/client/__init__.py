@@ -66,11 +66,11 @@ class LocalMatchClient(Adapter):
         return getattr(self._match, attr)
     
     @action
-    def playCard(self, card, effectNumber): pass
+    def playCard(self, card, effectIndex): pass
     @action
-    def movePlayer(self, coords): pass
+    def playSideways(self, card, effectIndex): pass
     @action
-    def chooseSourceDie(self, index): pass 
+    def movePlayer(self, coords): pass 
 
         
 class ManaSourceAdapter(Adapter):
