@@ -192,10 +192,10 @@ class ManaDraw(BasicAction):
     def strongEffect(self, match, player):
         if len(match.source) == 0:
             raise InvalidAction('No die in source.')
-        index = dialogs.chooseIndex(match.source)
-        color = dialogs.chooseManaColor(fromList=[Mana.red, Mana.blue, Mana.green, Mana.white, Mana.black])
-        match.source.remove(index)
-        match.effects.add(effects.ManaTokens({color: 2}))
+        oldColor = dialogs.chooseManaColor(fromList=match.source)
+        newColor = dialogs.chooseManaColor(fromList=[Mana.red, Mana.blue, Mana.green, Mana.white, Mana.black])
+        match.source.remove(oldColor)
+        match.effects.add(effects.ManaTokens({newColor: 2}))
  
     
 class March(BasicAction):

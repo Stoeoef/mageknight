@@ -30,16 +30,16 @@ from mageknight.data import * # @UnusedWildImport
 
 
 class ChooseDialog(QtWidgets.QDialog):
-    def __init__(self, options):
+    def __init__(self, options, label=str, title=translate('ChooseDialog', "Choose one")):
         super().__init__(mainwindow.mainWindow)
-        self.setWindowTitle(self.tr('Choose one'))
+        self.setWindowTitle(title)
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
         self.options = options       
         self.index = None
         for i, option in enumerate(options):
-            button = QtWidgets.QPushButton(str(option))
+            button = QtWidgets.QPushButton(label(option))
             button.clicked.connect(functools.partial(self._choose, i))
             layout.addWidget(button)
         
@@ -54,16 +54,16 @@ class ChooseDialog(QtWidgets.QDialog):
         else: return None
         
         
-def choose(options):
-    dialog = ChooseDialog(options)
+def choose(options, **kwargs):
+    dialog = ChooseDialog(options, **kwargs)
     dialog.exec_()
     if dialog.chosenOption is not None:
         return dialog.chosenOption
     else: raise CancelAction()
     
     
-def chooseIndex(options):
-    dialog = ChooseDialog(options)
+def chooseIndex(options, **kwargs):
+    dialog = ChooseDialog(options, **kwargs)
     dialog.exec_()
     if dialog.index is not None:
         return dialog.index
@@ -81,7 +81,13 @@ def chooseManaColor(match=None, available=False, basic=True, fromList=None):
                 raise InvalidAction("You don't have mana")
         else:
             colors = Mana.basicColors()
-    return choose(colors) # TODO: implement a nicer dialog, using crystal icons
+        
+    # remove duplicates
+    colorOptions = []
+    for color in colors:
+        if color not in colorOptions:
+            colorOptions.append(color)
+    return choose(colorOptions) # TODO: implement a nicer dialog, using crystal icons
 
 
 def chooseCard(player, type=None, allowWounds=False):

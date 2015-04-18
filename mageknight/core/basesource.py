@@ -53,9 +53,12 @@ class ManaSource(QtCore.QObject):
     def __iter__(self):
         return iter(self._dice)
     
-    def remove(self, index):
-        """Undoably remove the die at the given index from the source."""
-        color = self._dice[index]
+    def __str__(self):
+        return '[{}]'.format(', '.join(color.name for color in self._dice))
+    
+    def remove(self, color):
+        """Undoably remove a die of the given color from the source."""
+        index = self._dice.index(color)
         self.match.stack.push(stack.Call(self._remove, index),
                               stack.Call(self._insert, index, color))
         

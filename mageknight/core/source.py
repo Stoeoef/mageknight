@@ -21,7 +21,7 @@
 #
 
 from mageknight.data import Mana, InvalidAction
-from . import basesource, effects
+from . import basesource
 
 
 class ManaSource(basesource.ManaSource):
@@ -40,18 +40,22 @@ class ManaSource(basesource.ManaSource):
         # Rules: Source must be reshuffled if less than half of the dice show a basic color
         while sum(1 if die.isBasic else 0 for die in self._dice) < self.count / 2:
             self.shuffle()
-        self.limit = 1
+        self.limit = 1        
+
+    def take(self, colorOrIndex):
+        """Take a die from the source to pay a mana for the current player. The argument is either the
+        index of the die or a color.
+        """ 
+        if isinstance(colorOrIndex, int):
+            color = self._dice[colorOrIndex] 
+        else: color = colorOrIndex
         
-    def take(self, player, index):
         if self.limit == 0:
             raise InvalidAction("You cannot take another die in this turn")
-        color = self[index]
         if color == Mana.black and not self.match.nightRulesApply():
             raise InvalidAction("You must not use black mana during day.")
         if color == Mana.gold and self.match.nightRulesApply():
             raise InvalidAction("You must not use gold mana during night.")
         self.changeLimit(-1)
-        self.remove(index)
-        self.match.effects.add(effects.ManaTokens(color))
-        
+        self.remove(color)
         

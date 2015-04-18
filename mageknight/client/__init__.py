@@ -33,6 +33,9 @@ class Adapter(QtCore.QObject):
     def __getattr__(self, attr):
         if self._attrs is None or attr in self._attrs:
             return getattr(self._object, attr)
+    
+    def __str__(self):
+        return str(self._object)
         
         
 def action(f):

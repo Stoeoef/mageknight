@@ -24,6 +24,7 @@ from PyQt5 import QtCore
 from mageknight import stack, hexcoords
 from mageknight.data import *  # @UnusedWildImport
 from mageknight.core import source, player, map, effectlist, effects, cards # @Reimport
+from mageknight.gui import dialogs
 
 
 # use this to wrap player actions
@@ -98,37 +99,65 @@ class Match(QtCore.QObject):
             raise ValueError("Terrain {} is not passable".format(terrain.name))
         return costs[terrain]
     
-    def hasMana(self, color, player=None):
-        if player is None:
-            player = self.currentPlayer
+    def _manaOptions(self, player, colors):
+        if isinstance(colors, Mana):
+            colors = [colors]
+        colors = [c for c in Mana if c in colors] # copy and sort
+        if not self.nightRulesApply():
+            assert Mana.black not in colors
+            if Mana.gold not in colors:
+                colors.append(Mana.gold)
+        else:
+            assert Mana.gold not in colors
+        
+        options = []
+        
         if player == self.currentPlayer:
+            # Check available tokens
             effect = self.effects.find(effects.ManaTokens)
             if effect is not None:
-                if color in effect:
-                    return True
-                if color.isBasic and Mana.gold in effect and not self.nightRulesApply():
-                    return True
-        if color.isBasic and player.crystals[color] > 0:
-            return True
-        return False
+                for color in colors:
+                    if effect[color] > 0:
+                        options.append(('token', color, '{} token'.format(color.name)))
         
-    def _payMana(self, color):
-        """Pay a mana of the given color and return whether this was possible. First try mana tokens, then
-        gold mana (only during days), finally try to use a crystal.
+            # Check source
+            if self.source.limit > 0:
+                for color in colors:
+                    if color in self.source:
+                        options.append(('die', color, '{} die'.format(color.name)))
+        
+        # Check crystals
+        for color in colors:
+            if color.isBasic and player.crystals[color] > 0:
+                options.append(('crystal', color, '{} crystal'.format(color.name)))
+                
+        return options
+                
+    def hasMana(self, color):
+        """Return whether the player can pay a mana of the given color."""
+        return len(self._manaOptions(self.currentPlayer, color)) > 0
+        
+    def payMana(self, colors):
+        """Pay a mana in one of the given colors (*colors* may be a single color or a list of colors).
+        Raise an InvalidAction if that is not possible. Return the chosen color.
         """
-        effect = self.effects.find(effects.ManaTokens)
-        if effect is not None:
-            if color in effect:
-                self.effects.remove(effects.ManaTokens(color))
-                return True
-            if color.isBasic and self.round.type == RoundType.day and Mana.gold in effect:
-                self.effects.remove(effects.ManaTokens(Mana.gold))
-                return True
-        if self.currentPlayer.crystals[color] > 0:
-            self.currentPlayer.removeCrystal(color)
-            return True
+        options = self._manaOptions(self.currentPlayer, colors)
+        if len(options) == 0:
+            if self.source.limit == 0:
+                raise InvalidAction("You don't have mana (cannot use another die).")
+            else: raise InvalidAction("You don't have mana.")
+        
+        if len(options) == 1 and options[0][0] != 'crystal': # always ask before using crystals
+            type, color, _ = options[0]
+        else:            
+            type, color, _ = dialogs.choose(options, label=lambda t: t[2], title=self.tr("Pay mana"))
+        if type == 'token':
+            self.effects.remove(effects.ManaTokens(color))
+        elif type == 'die':
+            self.source.take(color)
         else:
-            return False
+            self.currentPlayer.removeCrystal(color)
+        return color
 
     @action
     def playCard(self, player, card, effectNumber):
@@ -137,10 +166,9 @@ class Match(QtCore.QObject):
                 #player.removeCard(card) # TODO: disabled to make debugging life easier
                 card.basicEffect(self, player)
             elif effectNumber == 1:
-                if self._payMana(card.color):
-                    #player.removeCard(card) # TODO: see above
-                    card.strongEffect(self, player)
-                else: raise InvalidAction("Cannot pay mana cost")
+                self.payMana(card.color)
+                #player.removeCard(card) # TODO: see above
+                card.strongEffect(self, player)
             else: raise ValueError("Invalid effect number for card '{}': {}".format(card.name, effectNumber))
         
     @action
@@ -164,9 +192,5 @@ class Match(QtCore.QObject):
             raise InvalidAction("Not enough move points")
         if costs > 0:
             self.effects.remove(effects.MovePoints(costs))
-        self.map.movePerson(player, coords) #TODO: this is not undoable yet
+        self.map.movePerson(player, coords)
             
-    @action
-    def chooseSourceDie(self, player, index):
-        self.source.take(player, index)
-        

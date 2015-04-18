@@ -89,12 +89,12 @@ class ManaSourceWidget(QtWidgets.QWidget):
             point = QtCore.QPoint(self.OUTER_SPACE + i*(self.SIZE+self.INNER_SPACE), self.OUTER_SPACE)
             painter.drawPixmap(point, pixmap)
         
-    def mouseReleaseEvent(self, event):
-        for i in range(len(self._dice)):
-            rect = QtCore.QRect(self.OUTER_SPACE + i*(self.SIZE+self.INNER_SPACE), self.OUTER_SPACE,
-                                self.SIZE, self.SIZE)
-            if rect.contains(event.pos()):
-                self.match.chooseSourceDie(i)
+#     def mouseReleaseEvent(self, event):
+#         for i in range(len(self._dice)):
+#             rect = QtCore.QRect(self.OUTER_SPACE + i*(self.SIZE+self.INNER_SPACE), self.OUTER_SPACE,
+#                                 self.SIZE, self.SIZE)
+#             if rect.contains(event.pos()):
+#                 self.match.chooseSourceDie(i)
             
         
 class ToggleViewAction(QtWidgets.QAction):
