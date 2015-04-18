@@ -98,7 +98,7 @@ class PointsEffect(Effect):
     
     
 class MovePoints(PointsEffect):
-    title = translate("Effects", "Move points")
+    title = translate("Effects", "Move")
     
     def __init__(self, points):
         super().__init__(points)
@@ -108,7 +108,7 @@ class MovePoints(PointsEffect):
         
         
 class InfluencePoints(PointsEffect):
-    title = translate("Effects", "Influence points")
+    title = translate("Effects", "Influence")
     # note: influence points can be negative due to reputation
 
     
@@ -153,6 +153,15 @@ class AttackPoints(PointsEffect):
             title += self.type.title + ' '
         title += 'Attack'
         return title
+    
+
+class HealPoints(PointsEffect):
+    title = translate("Effects", "Heal")
+    
+    def __init__(self, points):
+        super().__init__(points)
+        if points < 0:
+            raise ValueError("Heal points must not be negative.")
     
 
 class ManaTokens(Effect):
@@ -200,10 +209,4 @@ class Concentration(Effect):
     will be increased by *extra* (2 for Concentration, 3 for Will Power."""
     def __init__(self, extra):
         self.extra = extra
-    
-    
-# TODO: implement
-class ColdToughness(Effect):
-    pass
-    
     

@@ -109,3 +109,24 @@ class Player(QtCore.QObject):
         self.handCards.remove(card)
         self.handCardsChanged.emit()
     
+    def addFame(self, fame):
+        self.match.stack.push(stack.Call(self._addFame, fame),
+                              stack.Call(self._addFame, -fame))
+            
+    def _addFame(self, fame):
+        self.fame += fame # fame might be negative and is allowed to drop below 0
+        self.fameChanged.emit(self.fame)
+    
+    def addReputation(self, reputation):
+        old = self.reputation
+        new = max(MIN_REPUTATION, min(old+reputation, MAX_REPUTATION))
+        self.match.stack.push(stack.Call(self._setReputation, new),
+                              stack.Call(self._setReputation, old))
+        
+    def _setReputation(self, reputation):
+        if reputation != self.reputation: 
+            self.reputation = reputation
+            self.reputationChanged.emit(reputation)
+             
+        
+    

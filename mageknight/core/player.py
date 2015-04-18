@@ -24,12 +24,12 @@ from . import baseplayer, cards
 
 class Player(baseplayer.Player):                                
     def initDeedDeck(self):
-        names = ['improvisation', 'concentration', 'rage', 'crystallize'] #TODO: 
+        names = ['improvisation', 'threaten', 'rage', 'crystallize', 'march', 'march', 'mana_draw', 'tranquility', ] #TODO: 
         self.drawPile = [cards.get(name) for name in names]
         self.cardCountChanged.emit()
         
     def drawCards(self, count=None):
-        self.match.stack.clear()
+        self.match.revealNewInformation()
         if count is None:
             count = self.cardLimit - self.handCardCount
         count = min(count, self.drawPileCount)

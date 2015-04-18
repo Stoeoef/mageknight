@@ -37,6 +37,7 @@ class ManaSource(QtCore.QObject):
         super().__init__()
         self.match = match
         self.count = count
+        self.limit = 1
         self._dice = None
     
     # Methods required for a read-only list
@@ -67,3 +68,10 @@ class ManaSource(QtCore.QObject):
         """Remove the die at the given index from the source."""
         self._dice.pop(index)
         self.changed.emit()
+
+    def changeLimit(self, amount):
+        self.match.stack.push(stack.Call(self._changeLimit, amount),
+                              stack.Call(self._changeLimit, -amount))
+        
+    def _changeLimit(self, amount):
+        self.limit += amount

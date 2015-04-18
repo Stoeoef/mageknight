@@ -20,21 +20,38 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from . import basesource
-
-from mageknight.data import Mana
+from mageknight.data import Mana, InvalidAction
+from . import basesource, effects
 
 
 class ManaSource(basesource.ManaSource):
     def __init__(self, match, count):
         super().__init__(match, count)
-        self.shuffle()
+        self.reset()
         
     def shuffle(self):
-        """Shuffle all dice in the source according to the rules."""
-        self.match.stack.clear()
-        while True:
-            self._dice = [Mana.random() for _ in range(self.count)]
-            if sum(1 if die.isBasic else 0 for die in self._dice) >= self.count / 2:
-                break
+        """Shuffle all dice in the source."""
+        self.match.revealNewInformation()
+        self._dice = [Mana.random() for _ in range(self.count)]
         self.changed.emit()
+    
+    def reset(self):
+        self.shuffle()
+        # Rules: Source must be reshuffled if less than half of the dice show a basic color
+        while sum(1 if die.isBasic else 0 for die in self._dice) < self.count / 2:
+            self.shuffle()
+        self.limit = 1
+        
+    def take(self, player, index):
+        if self.limit == 0:
+            raise InvalidAction("You cannot take another die in this turn")
+        color = self[index]
+        if color == Mana.black and not self.match.nightRulesApply():
+            raise InvalidAction("You must not use black mana during day.")
+        if color == Mana.gold and self.match.nightRulesApply():
+            raise InvalidAction("You must not use gold mana during night.")
+        self.changeLimit(-1)
+        self.remove(index)
+        self.match.effects.add(effects.ManaTokens(color))
+        
+        

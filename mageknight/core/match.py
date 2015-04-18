@@ -33,7 +33,7 @@ def action(f):
         self.stack.beginMacro()
         try:
             f(self, *args, **kwargs)
-            self.stack.endMacro()
+            self.stack.endMacro(abortIfEmpty=True) # the macro is often empty, when new info was revealed
         except CancelAction: # action was aborted e.g. by canceling a dialog
             self.stack.abortMacro()
         except InvalidAction as e:
@@ -63,6 +63,15 @@ class Match(QtCore.QObject):
             player.initDeedDeck()
             player.drawCards()
         self.currentPlayer = self.players[0]
+        
+    def revealNewInformation(self):
+        """Call this whenever new information is revealed. It will clear the undo stack."""
+        if self.stack.isComposing():
+            self.stack.endMacro()
+            self.stack.clear()
+            self.stack.beginMacro()
+        else:
+            self.stack.clear()
         
     def nightRulesApply(self):
         """Return whether night rules hold currently. This is true during nights, in dungeons, etc."""
@@ -159,13 +168,5 @@ class Match(QtCore.QObject):
             
     @action
     def chooseSourceDie(self, player, index):
-        if len(self.source) < self.source.count:
-            raise InvalidAction("You cannot take more than one die") # TODO: improve this check
-        color = self.source[index]
-        if color == Mana.black and not self.nightRulesApply():
-            raise InvalidAction("You must not use black mana during day.")
-        if color == Mana.gold and self.nightRulesApply():
-            raise InvalidAction("You must not use gold mana during night.")
-        self.source.remove(index)
-        self.effects.add(effects.ManaTokens(color))
+        self.source.take(player, index)
         

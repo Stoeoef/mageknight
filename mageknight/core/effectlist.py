@@ -26,7 +26,8 @@ from .effects import * # @UnusedWildImport
 
 class EffectList(baseeffectlist.EffectList):
     def add(self, effect):
-        if isinstance(effect, PointsEffect) and self.find(Concentration) is not None:
+        if isinstance(effect, PointsEffect) and not isinstance(effect, HealPoints) \
+                and self.find(Concentration) is not None:
             # if several Concentration effects are active, only the last one counts
             effect.points += self.find(Concentration, reverse=True).extra
         super().add(effect)

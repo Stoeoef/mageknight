@@ -60,14 +60,22 @@ def choose(options):
     if dialog.chosenOption is not None:
         return dialog.chosenOption
     else: raise CancelAction()
+    
+    
+def chooseIndex(options):
+    dialog = ChooseDialog(options)
+    dialog.exec_()
+    if dialog.index is not None:
+        return dialog.index
+    else: raise CancelAction()
 
 
 def chooseManaColor(match=None, available=False, basic=True, fromList=None):
     if fromList is not None:
         colors = fromList
     else:
-        assert match is not None
         if available:
+            assert match is not None
             colors = [color for color in Mana if match.hasMana(color)]
             if len(colors) == 0:
                 raise InvalidAction("You don't have mana")
