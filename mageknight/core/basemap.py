@@ -22,11 +22,12 @@
 
 from PyQt5 import QtCore
 
+from mageknight import stack
 from mageknight.hexcoords import HexCoords
-from mageknight.matchdata import * # @UnusedWildImport
-from .objects import Player
-
-        
+from mageknight.data import * # @UnusedWildImport
+from . import player
+    
+    
 class Map(QtCore.QObject):
     """Model for the map of a Mage Knight match.
     Public (read-only) attributes are:
@@ -42,7 +43,7 @@ class Map(QtCore.QObject):
     tileAdded = QtCore.pyqtSignal(HexCoords)
     shieldTokenAdded = QtCore.pyqtSignal(HexCoords)
     enemiesChanged = QtCore.pyqtSignal(HexCoords)
-    personChanged = QtCore.pyqtSignal(Player)
+    personChanged = QtCore.pyqtSignal(player.Player)
     
     def __init__(self, match, shape):
         super().__init__()
@@ -82,39 +83,54 @@ class Map(QtCore.QObject):
             return tile.siteAt(coords-tileCenter(coords))
         else: return None
         
-    def addShieldToken(self, player, coords):
+    def _addShieldToken(self, player, coords):
         """Add a shield token of the given player to the specified hex. The hex must be empty."""
         assert coords not in self.shieldTokens
         self.shieldTokens[coords] = player
         self.shieldTokenAdded.emit(coords)
         
-    def addEnemy(self, enemy, coords):
+    def _addEnemy(self, enemy, coords):
         """Add an enemy to the specified hex field. Each hex can contain arbitrary many enemies."""
         if coords not in self.enemies:
             self.enemies[coords] = []
         self.enemies[coords].append(enemy)
         self.enemiesChanged.emit(coords)
         
-    def removeEnemy(self, enemy, coords):
+    def _removeEnemy(self, enemy, coords):
         """Remove the given enemy from the specified hex."""
         try:
             self.enemies[coords].remove(enemy)
         except (KeyError, ValueError):
             raise ValueError("There is no enemy {} at {}.".format(enemy, coords))
         self.enemiesChanged.emit(coords)
-        
+    
     def addPerson(self, person, coords):
+        assert person not in self.persons
+        self.match.stack.push(stack.Call(self._addPerson, person, coords),
+                              stack.Call(self._removePerson, person))
+        
+    def removePerson(self, person):
+        assert person in self.persons
+        self.match.stack.push(stack.Call(self._removePerson, person),
+                              stack.Call(self._addPerson, person, self.persons[person]))
+        
+    def _addPerson(self, person, coords):
         """Add the given person to the specified hex."""
         assert person not in self.persons
         self.persons[person] = coords
         self.personChanged.emit(person)
     
-    def removePerson(self, person):
+    def _removePerson(self, person):
         """Remove the given person from the map."""
         del self.persons[person]
         self.personChanged.emit(person)
-        
+    
     def movePerson(self, person, coords):
+        assert person in self.persons
+        self.match.stack.push(stack.Call(self._movePerson, person, coords),
+                              stack.Call(self._movePerson, person, self.persons[person]))
+        
+    def _movePerson(self, person, coords):
         """Move the given person to the specified hex."""
         self.persons[person] = coords
         self.personChanged.emit(person)

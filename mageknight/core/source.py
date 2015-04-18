@@ -20,13 +20,21 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-"""This module contains all sorts of constants, enums and immutable data structures used in Mage Knight.
-Import it using 'from mageknight.match.data import *'.
-"""
+from . import basesource
 
-from .core import *
-from .enemies import *
-from .map import *
-from .players import *
+from mageknight.data import Mana
 
-from . import cards, effects
+
+class ManaSource(basesource.ManaSource):
+    def __init__(self, match, count):
+        super().__init__(match, count)
+        self.shuffle()
+        
+    def shuffle(self):
+        """Shuffle all dice in the source according to the rules."""
+        self.match.stack.clear()
+        while True:
+            self._dice = [Mana.random() for _ in range(self.count)]
+            if sum(1 if die.isBasic else 0 for die in self._dice) >= self.count / 2:
+                break
+        self.changed.emit()

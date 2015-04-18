@@ -24,7 +24,7 @@ import enum
 
 from mageknight import utils
 
-__all__ = ['EnemyType', 'BlockType', 'AttackType', 'Attack', 'Enemy']
+__all__ = ['EnemyType', 'BlockType', 'AttackType', 'Attack', 'AttackRange', 'Enemy']
 
 
 class EnemyType(enum.Enum):

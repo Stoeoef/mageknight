@@ -26,7 +26,7 @@ from PyQt5 import QtCore, QtWidgets
 translate = QtCore.QCoreApplication.translate
 
 from mageknight.gui import mainwindow
-from mageknight.matchdata import * # @UnusedWildImport
+from mageknight.data import * # @UnusedWildImport
 
 
 class ChooseDialog(QtWidgets.QDialog):

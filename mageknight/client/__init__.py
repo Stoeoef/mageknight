@@ -21,7 +21,7 @@
 
 from PyQt5 import QtCore
 
-from mageknight.matchdata import *
+from mageknight.data import InvalidAction
  
         
 class Adapter(QtCore.QObject):

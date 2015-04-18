@@ -130,7 +130,7 @@ class FameViewScene(QtWidgets.QGraphicsScene):
         """ 
         # First find out the positions where the items should be placed without shifting
         coords = collections.defaultdict(list)
-        from mageknight.matchdata import MIN_REPUTATION
+        from mageknight.data import MIN_REPUTATION
         for player, item in self.reputationItems.items():
             repData = self._repData[player.reputation - MIN_REPUTATION]
             coords[repData].append(item)

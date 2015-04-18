@@ -23,7 +23,7 @@
 from PyQt5 import QtCore, QtWidgets
 
 from mageknight import utils
-from mageknight.matchdata import Mana
+from mageknight.data import Mana
 
 
 class PlayerColumn(QtWidgets.QWidget):

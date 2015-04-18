@@ -25,9 +25,7 @@ import functools
 from PyQt5 import QtCore
 translate = QtCore.QCoreApplication.translate
 
-from mageknight import stack
-from .core import Mana
-from .enemies import BlockType, AttackType, AttackRange
+from mageknight.data import * # @UnusedWildImport
 
 
 @functools.total_ordering
@@ -183,79 +181,3 @@ class Concentration(Effect):
         self.extra = extra
     
     
-class EffectList(QtCore.QObject):
-    changed = QtCore.pyqtSignal()
-    
-    def __init__(self, match):
-        super().__init__()
-        self.match = match
-        self._list = []
-    
-    def add(self, effect):
-        if isinstance(effect, PointsEffect) and self.find(Concentration) is not None:
-            # if several Concentration effects are active, only the last one counts
-            effect.points += self.find(Concentration, reverse=True).extra
-        self.match.stack.push(stack.Call(self._add, effect),
-                              stack.Call(self._remove, effect))
-        
-    def remove(self, effect):
-        self.match.stack.push(stack.Call(self._remove, effect),
-                              stack.Call(self._add, effect))
-        
-    def _add(self, effect):
-        # first try to combine the effect with an existing one:
-        for i, e in enumerate(self._list):
-            new = e.add(effect)
-            if new is False:
-                continue
-            elif new is not None:
-                self._list[i] = new
-            else: del self._list[i]
-            self.changed.emit()
-            return
-        else:
-            # insert at the right position
-            i = 0
-            while i < len(self._list) and self._list[i] < effect:
-                i += 1
-            self._list.insert(i, effect)
-            self.changed.emit()
-        
-    def _remove(self, effect):
-        for i, e in enumerate(self._list):
-            new = e.remove(effect)
-            if new is False:
-                continue
-            elif new is not None:
-                self._list[i] = new
-            else: del self._list[i]
-            self.changed.emit()
-            return True
-        else: False
-        
-    def __iter__(self):
-        return iter(self._list)
-    
-    def __len__(self):
-        return len(self._list)
-    
-    def __contains__(self, item):
-        return item in self._list
-    
-    def __getitem__(self, index):
-        return self._list[index]
-    
-    def find(self, effectType, reverse=False):
-        theList = self._list if not reverse else reversed(self._list)
-        for e in theList:
-            if isinstance(e, effectType):
-                return e
-        else: return None
-        
-    @property
-    def movePoints(self):
-        return sum(e.points for e in self._list if isinstance(e, MovePoints))
-                   
-    @property
-    def influencePoints(self):
-        return sum(e.points for e in self._list if isinstance(e, InfluencePoints))

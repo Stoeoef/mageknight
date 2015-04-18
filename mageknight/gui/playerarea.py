@@ -24,8 +24,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt
 
 from mageknight import utils
-from mageknight.gui import stock 
-from mageknight.matchdata import cards
+from mageknight.gui import stock
 
 
 class PlayerArea(QtWidgets.QWidget):

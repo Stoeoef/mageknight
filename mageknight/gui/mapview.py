@@ -24,7 +24,7 @@ from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtCore import Qt
 
 from mageknight import hexcoords, utils
-from mageknight.matchdata import Hero, Tile
+from mageknight.data import Hero, Tile
 
 
 class MapView(QtWidgets.QGraphicsView):

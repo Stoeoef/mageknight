@@ -24,8 +24,7 @@ translate = QtCore.QCoreApplication.translate
 
 from mageknight import utils
 from mageknight.gui import dialogs
-from .core import Mana
-from .enemies import AttackRange
+from mageknight.data import Mana, AttackRange
 from . import effects
 
 

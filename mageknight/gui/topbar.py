@@ -24,7 +24,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt 
 
 from mageknight import utils
-from mageknight.matchdata import Mana
+from mageknight.data import Mana
 
 
 class TopBar(QtWidgets.QWidget):

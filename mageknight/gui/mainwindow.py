@@ -32,10 +32,10 @@ class MainWindow(QtWidgets.QWidget):
         global mainWindow
         mainWindow = self
         
-        from mageknight import client, server
-        from mageknight.matchdata import Hero
-        players = [server.Player('Nameless Player', Hero.Norowas)]
-        self.match = server.Match(players)
+        from mageknight import core, client
+        from mageknight.data import Hero
+        players = [core.Player('Nameless Player', Hero.Norowas)]
+        self.match = core.Match(players)
         self.client = client.LocalMatchClient(self.match, players[0])
         
         layout = QtWidgets.QHBoxLayout(self)

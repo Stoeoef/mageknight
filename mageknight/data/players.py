@@ -23,7 +23,7 @@
 import enum
 
 from mageknight import utils
-from .core import RoundType
+from mageknight.data import RoundType
 
 __all__ = ['MIN_REPUTATION', 'MAX_REPUTATION', 'REPUTATION_MODIFIERS', 'Hero', 'Tactic', 'PlayerTactic']
 
