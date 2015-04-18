@@ -43,6 +43,9 @@ class Effect:
     
     def __eq__(self, other):
         return other is self # should be implemented in subclasses
+    
+    def __str__(self):
+        return type(self).__name__ # should be implemented in subclasses
 
 
 class UniqueEffect(Effect):
@@ -65,33 +68,37 @@ class PointsEffect(Effect):
         assert points != 0
         self.points = points
     
-    def _changed(self, amount):
+    def _changed(self, amount, **kwargs):
         newPoints = self.points + amount
         if newPoints == 0:
             return None
         elif newPoints < min(0, self.points): # allow negative numbers if bigger than current number 
             return False # cannot pay
-        else: return type(self)(newPoints)
+        else: return type(self)(newPoints, **kwargs)
+        
+    def _sameType(self, other):
+        # if this returns true, effects can be combined. Must be reimplemented for Attack/Block types. 
+        return type(self) is type(other)
         
     def add(self, other):
-        if type(self) is type(other):
+        if self._sameType(other):
             return self._changed(other.points)
         else: return False
     
     def remove(self, other):
-        if type(self) is type(other):
+        if self._sameType(other):
             return self._changed(-other.points)
         else: return False
         
     def __str__(self):
-        return '{}: {}'.format(self.name, self.points)
+        return '{} {}'.format(self.title, self.points)
     
     def __eq__(self, other):
-        return type(other) is type(self) and other.points == self.points
+        return self._sameType(other) and self.points == other.points
     
     
 class MovePoints(PointsEffect):
-    name = translate("Effects", "Move points")
+    title = translate("Effects", "Move points")
     
     def __init__(self, points):
         super().__init__(points)
@@ -99,8 +106,9 @@ class MovePoints(PointsEffect):
             raise ValueError("Move points must not be negative.")
         
         
+        
 class InfluencePoints(PointsEffect):
-    name = translate("Effects", "Influence points")
+    title = translate("Effects", "Influence points")
     # note: influence points can be negative due to reputation
 
     
@@ -109,13 +117,18 @@ class BlockPoints(PointsEffect):
         super().__init__(points)
         assert isinstance(type, BlockType)
         self.type = type
-        
-    def __eq__(self, other):
+    
+    def _changed(self, amount):
+        return super()._changed(amount, type=self.type)
+    
+    def _sameType(self, other):
         return type(other) is type(self) and other.points == self.points and other.type == self.type
     
     @property
-    def name(self):
-        return 'Block points ({})'.format(self.type.name) # TODO: translate type
+    def title(self):
+        if self.type == BlockType.physical:
+            return 'Block'
+        else: return '{} Block'.format(self.type.title)
 
 
 class AttackPoints(PointsEffect):
@@ -125,13 +138,21 @@ class AttackPoints(PointsEffect):
         self.type = type
         self.range = range
         
-    def __eq__(self, other):
-        return type(other) is type(self) and other.points == self.points \
-                    and other.type == self.type and other.range == self.range
+    def _changed(self, amount):
+        return super()._changed(amount, type=self.type, range=self.range)
+    
+    def _sameType(self, other):
+        return type(other) is type(self) and other.type == self.type and other.range == self.range
     
     @property
-    def name(self):
-        return 'Attack points ({}, {})'.format(self.type.name, self.range.name) # TODO: translate
+    def title(self):
+        if self.range != AttackRange.normal:
+            title = self.range.title + ' '
+        else: title = ''
+        if self.type != AttackType.physical:
+            title += self.type.title + ' '
+        title += 'Attack'
+        return title
     
 
 class ManaTokens(Effect):

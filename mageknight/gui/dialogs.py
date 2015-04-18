@@ -35,7 +35,8 @@ class ChooseDialog(QtWidgets.QDialog):
         self.setWindowTitle(self.tr('Choose one'))
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        
+
+        self.options = options       
         self.index = None
         for i, option in enumerate(options):
             button = QtWidgets.QPushButton(str(option))
@@ -45,28 +46,38 @@ class ChooseDialog(QtWidgets.QDialog):
     def _choose(self, index):
         self.index = index
         self.accept()
-    
+        
+    @property
+    def chosenOption(self):
+        if self.index is not None:
+            return self.options[self.index]
+        else: return None
+        
         
 def choose(options):
     dialog = ChooseDialog(options)
     dialog.exec_()
-    if dialog.index is None:
-        raise CancelAction()
-    return dialog.index
+    if dialog.chosenOption is not None:
+        return dialog.chosenOption
+    else: raise CancelAction()
 
 
-def chooseManaColor(match, available, basic=True):
-    if available:
-        colors = [color for color in Mana if match.hasMana(color)]
-        if len(colors) == 0:
-            raise InvalidAction("You don't have mana")
+def chooseManaColor(match=None, available=False, basic=True, fromList=None):
+    if fromList is not None:
+        colors = fromList
     else:
-        colors = Mana.basicColors()
-    return colors[choose([color.name for color in colors])]
+        assert match is not None
+        if available:
+            colors = [color for color in Mana if match.hasMana(color)]
+            if len(colors) == 0:
+                raise InvalidAction("You don't have mana")
+        else:
+            colors = Mana.basicColors()
+    return choose(colors) # TODO: implement a nicer dialog, using crystal icons
 
 
 def chooseCard(player, type=None):
     cards = [card for card in player.handCards if type is None or isinstance(card, type)]
     if len(cards) > 0:
-        return cards[choose([card.title for card in cards])]
+        return choose(cards)
     else: raise InvalidAction("You don't have a card")

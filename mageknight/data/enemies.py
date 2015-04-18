@@ -47,6 +47,14 @@ class AttackRange(enum.Enum):
     normal = 1
     range = 2
     siege = 3
+    
+    @property
+    def title(self):
+        if self is AttackRange.normal:
+            return 'Normal'
+        elif self is AttackRange.range:
+            return 'Ranged'
+        else: return 'Siege'
 
 
 class BlockType(enum.Enum):
@@ -55,6 +63,16 @@ class BlockType(enum.Enum):
     fire = 2
     ice = 3
     coldFire = 4
+    
+    @property
+    def title(self):
+        if self is BlockType.physical:
+            return 'Physical'
+        elif self is BlockType.fire:
+            return 'Fire'
+        elif self is BlockType.ice:
+            return 'Ice'
+        else: return 'Cold Fire'
     
     
 class AttackType(enum.Enum):
@@ -65,6 +83,18 @@ class AttackType(enum.Enum):
     coldFire = 4
     summoner = 5
     
+    @property
+    def title(self):
+        if self is AttackType.physical:
+            return 'Physical'
+        elif self is AttackType.fire:
+            return 'Fire'
+        elif self is AttackType.ice:
+            return 'Ice'
+        elif self is AttackType.coldFire:
+            return 'Cold Fire'
+        else: return 'Summoner'
+
     
 class Attack:
     """An enemy attack. It consists of a type and a value. The value is either the amount of damage

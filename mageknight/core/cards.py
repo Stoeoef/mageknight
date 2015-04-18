@@ -24,7 +24,7 @@ translate = QtCore.QCoreApplication.translate
 
 from mageknight import utils
 from mageknight.gui import dialogs
-from mageknight.data import Mana, AttackRange
+from mageknight.data import * # @UnusedWildImport
 from . import effects
 
 
@@ -52,6 +52,37 @@ class AdvancedAction(ActionCard):
     isAdvanced = True
 
 
+
+class BattleVersatility(BasicAction):
+    name = 'battle_versatility'
+    title = translate('cards', 'Battle Versatility')
+    color = Mana.red
+    
+    def basicEffect(self, match, player):
+        options = [effects.AttackPoints(2),
+                   effects.BlockPoints(2),
+                   effects.AttackPoints(1, range=AttackRange.range)
+                  ]
+        effect = dialogs.choose(options)
+        match.effects.add(effect)
+    
+    
+    def strongEffect(self, match, player):
+        options = [effects.AttackPoints(4),
+                   effects.BlockPoints(4),
+                   effects.AttackPoints(3, type=AttackType.fire),
+                   effects.BlockPoints(3, type=BlockType.fire),
+                   effects.AttackPoints(3, range=AttackRange.range),
+                   effects.AttackPoints(2, range=AttackRange.siege)
+                  ]
+        effect = dialogs.choose(options)
+        match.effects.add(effect)
+
+
+class ColdToughness(BasicAction):
+    name = 'cold_toughness'
+    title = translate('carsd', 'Cold Toughness')
+    
 class March(BasicAction):
     name = 'march'
     title = translate('cards', 'March')
@@ -82,8 +113,8 @@ class Rage(BasicAction):
     color = Mana.red
     
     def basicEffect(self, match, player):
-        index = dialogs.choose(['Attack 2', 'Block 2'])
-        match.effects.add((effects.AttackPoints if index == 0 else effects.BlockPoints)(2))
+        options = [effects.AttackPoints(2), effects.BlockPoints(2)]
+        match.effects.add(dialogs.choose(options))
     
     def strongEffect(self, match, player):
         match.effects.add(effects.AttackPoints(4))
@@ -121,9 +152,8 @@ class Concentration(BasicAction):
     color = Mana.green
     
     def basicEffect(self, match, player):
-        colors = [Mana.blue, Mana.white, Mana.red]
-        chosenColor = colors[dialogs.choose([color.name for color in colors])]
-        match.effects.add(effects.ManaTokens(chosenColor))
+        color = dialogs.chooseManaColor(fromList=[Mana.blue, Mana.white, Mana.red])
+        match.effects.add(effects.ManaTokens(color))
         
     def strongEffect(self, match, player):
         concentration = effects.Concentration(2)
