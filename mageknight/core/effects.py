@@ -122,7 +122,7 @@ class BlockPoints(PointsEffect):
         return super()._changed(amount, type=self.type)
     
     def _sameType(self, other):
-        return type(other) is type(self) and other.points == self.points and other.type == self.type
+        return type(other) is type(self) and other.type == self.type
     
     @property
     def title(self):
