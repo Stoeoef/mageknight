@@ -26,8 +26,12 @@ from . import basemap
 
 
 class SiteOnMap:
-    def __init__(self, site):
+    def __init__(self, site, coords):
         self.site = site
+        self.coords = coords
+        self.active = True
+        self.enemies = []
+        self.owner = None
         
     def __getattr__(self, attr):
         return getattr(self.site, attr)
@@ -45,6 +49,9 @@ class Map(basemap.Map):
         """Add the tile and put enemy tokens on top of it."""
         super().addTile(tile, coords)
         for c, site in tile.allSites():
-            if site == Site.maraudingOrcs:
+            site = SiteOnMap(site, coords + c)
+            if site.site is Site.maraudingOrcs:
                 enemy = self.match.chooseEnemy(EnemyCategory.maraudingOrcs)
-                self._addEnemy(enemy, coords + c)
+                site.enemies.append(enemy)
+            
+            self.addSite(site)

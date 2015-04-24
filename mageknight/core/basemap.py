@@ -41,8 +41,7 @@ class Map(QtCore.QObject):
     
     """
     tileAdded = QtCore.pyqtSignal(HexCoords)
-    shieldTokenAdded = QtCore.pyqtSignal(HexCoords)
-    enemiesChanged = QtCore.pyqtSignal(HexCoords)
+    siteChanged = QtCore.pyqtSignal(HexCoords)
     personChanged = QtCore.pyqtSignal(player.Player)
     
     def __init__(self, match, shape):
@@ -51,8 +50,7 @@ class Map(QtCore.QObject):
         assert isinstance(shape, MapShape)
         self.shape = shape
         self.tiles = {}
-        self.shieldTokens = {}
-        self.enemies = {}
+        self.sites = {}
         self.persons = {}
 
     def addTile(self, tile, coords):
@@ -75,41 +73,17 @@ class Map(QtCore.QObject):
         if tile is not None:
             return tile.terrainAt(coords-tileCenter(coords))
         else: return None
-        
-    def siteAt(self, coords):
-        """Return the site on the given hex. Returns None if there is no tile at this position."""
-        tile = self.tileAt(coords)
-        if tile is not None:
-            return tile.siteAt(coords-tileCenter(coords))
-        else: return None
     
     def siteAtPlayer(self, player):
         """Return the site at the coordinates of this player. Return None if the player is not on the map.
         """
-        if player in self.persons:
-            return self.siteAt(self.persons[player])
-        else: return None
+        return self.sites.get(self.persons[player])
         
-    def _addShieldToken(self, player, coords):
-        """Add a shield token of the given player to the specified hex. The hex must be empty."""
-        assert coords not in self.shieldTokens
-        self.shieldTokens[coords] = player
-        self.shieldTokenAdded.emit(coords)
-        
-    def _addEnemy(self, enemy, coords):
-        """Add an enemy to the specified hex field. Each hex can contain arbitrary many enemies."""
-        if coords not in self.enemies:
-            self.enemies[coords] = []
-        self.enemies[coords].append(enemy)
-        self.enemiesChanged.emit(coords)
-        
-    def _removeEnemy(self, enemy, coords):
-        """Remove the given enemy from the specified hex."""
-        try:
-            self.enemies[coords].remove(enemy)
-        except (KeyError, ValueError):
-            raise ValueError("There is no enemy {} at {}.".format(enemy, coords))
-        self.enemiesChanged.emit(coords)
+    def addSite(self, site):
+        # note: this is only executed when new tiles are revealed => no undo/redo necessary
+        assert site.coords not in self.sites 
+        self.sites[site.coords] = site
+        self.siteChanged.emit(site.coords)
     
     def addPerson(self, person, coords):
         assert person not in self.persons
@@ -142,7 +116,11 @@ class Map(QtCore.QObject):
         self.persons[person] = coords
         self.personChanged.emit(person)
 
-
+    def _addEnemy(self, site, enemy):
+        site.enemies.append(enemy)
+        self.siteChanged.emit(site.coords)
+        
+        
 def isTileCenter(coords):
     """Return whether *coords* are the coordinates of the center hex of a tile."""
     # tile centers are coordinates of the form n * (2,-1) + m * (1,3) with n,m ∈ ℕ

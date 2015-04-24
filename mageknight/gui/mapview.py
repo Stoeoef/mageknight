@@ -24,7 +24,7 @@ from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtCore import Qt
 
 from mageknight import hexcoords, utils
-from mageknight.data import Hero, Tile
+from mageknight.data import Hero
 
 
 class MapView(QtWidgets.QGraphicsView):
@@ -50,27 +50,18 @@ class MapModel(QtWidgets.QGraphicsScene):
         super().__init__(parent) # parent is necessary or segfaults occur
         self.match = match
         self.map = match.map
-        self._enemyItems = {}
         self._personItems = {}
-        
-        # initialize
-        for coords in self.map.enemies.keys():
-            self._enemiesChanged(coords)
-        for person in self.map.persons.keys():
-            self._personChanged(person)
+        self._siteItems = {}
         
         self.map.tileAdded.connect(self._tileAdded)
-        self.map.shieldTokenAdded.connect(self._shieldTokenAdded)
-        self.map.enemiesChanged.connect(self._enemiesChanged)
+        self.map.siteChanged.connect(self._siteChanged)
         self.map.personChanged.connect(self._personChanged)
         
         # Initialize
         for coords in self.map.tiles.keys():
             self._tileAdded(coords)
-        for coords in self.map.shieldTokens.keys():
-            self._shieldTokenAdded(coords)
-        for coords in self.map.enemies.keys():
-            self._enemiesChanged(coords)
+        for coords in self.map.sites.keys():
+            self._siteChanged(coords)
         for person in self.map.persons.keys():
             self._personChanged(person)
 
@@ -78,43 +69,46 @@ class MapModel(QtWidgets.QGraphicsScene):
         tileItem = TileItem(self.map.tiles[coords], coords)
         self.addItem(tileItem)
         
-    def _shieldTokenAdded(self, coords):
-        player = self.map.shieldTokens[coords]
-        pixmap = utils.getPixmap('mk/players/shield_{}.png'.format(player))
-        item = QtWidgets.QGraphicsPixmapItem(pixmap)
-        item.setPos(coords.center())
-        # to make sure that the site below remains visible, we do not center the token vertically
-        item.setOffset(-pixmap.width()/2, 0)
-        self.addItem(item)
+    def _siteChanged(self, coords):
+        site = self.map.sites[coords]
+        if coords not in self._siteItems:
+            item = SiteItem(site)
+            item.setPos(coords.center())
+            self._siteItems[item] = item
+            self.addItem(item)
+        else:
+            self._siteItems[item]._update()
+            self._shiftItemsAt(self.coords)
     
     def _shiftItemsAt(self, coords):
         """Shift all enemy tokens and persons at the specified hex slightly, so that the user can see that
         there are multiple items at this position.
         """
         items = []
-        if coords in self._enemyItems:
-            items.extend(self._enemyItems[coords])
+        if coords in self._siteItems:
+            items.extend(self._siteItems[coords]._enemyItems)
         for item in self._personItems.values():
             if item.coords == coords:
                 items.append(item)
                 
         if len(items) == 1:
-            items[0].setZValue(1)
-            items[0].setPos(coords.center())
+            item = items[0]
+            item.setZValue(1)
+            # EnemyItems are stored within a SiteItem => local coordinate system
+            # Persons are stored as toplevel items => scene coordinate system
+            if isinstance(item, EnemyItem):
+                pos = QtCore.QPointF(0, 0)
+            else: pos = coords.center()
+            item.setPos(coords.center())
+            
         elif len(items) > 1:
             for i, item in enumerate(items):
                 offset = -20 + 40*i/(len(items)-1)
-                item.setPos(coords.center() + QtCore.QPointF(offset, 0))
+                pos = QtCore.QPointF(offset, 0)
+                if not isinstance(item, EnemyItem):
+                    pos += coords.center()
+                item.setPos(pos)
                 item.setZValue(i+1)
-        
-    def _enemiesChanged(self, coords):
-        if coords in self._enemyItems:
-            for item in self._enemyItems[coords]:
-                self.removeItem(item)
-        self._enemyItems[coords] = [EnemyItem(enemy, coords) for enemy in self.map.enemies[coords]]
-        for item in self._enemyItems[coords]:
-            self.addItem(item)
-        self._shiftItemsAt(coords)
     
     def _personChanged(self, person):
         if person not in self._personItems: # person added
@@ -151,15 +145,43 @@ class TileItem(QtWidgets.QGraphicsPixmapItem):
         self.setOffset(-3*hexcoords.ALTITUDE, -2.5*hexcoords.SIDE) # position of top left corner
         self.setPixmap(tile.pixmap())
         self.setPos(coords.center())
-
-    def paint(self, painter, option, widget=None):
-        super().paint(painter, option, widget)
         
 
+class SiteItem(QtWidgets.QGraphicsItem):
+    def __init__(self, site):
+        super().__init__()
+        self.site = site
+        self._update()
+        self._enemyItems = []
+        self._shieldItem = None
+        
+    def _update(self):
+        self.prepareGeometryChange()
+        for item in self.childItems():
+            self.scene().removeItem(item)
+            
+        for enemy in self.site.enemies:
+            item = EnemyItem(enemy)
+            item.setParentItem(self)
+            
+        if self.site.owner is not None:
+            pixmap = utils.getPixmap('mk/players/shield_{}.png'.format(self.site.owner.hero.name))
+            item = QtWidgets.QGraphicsPixmapItem(pixmap)
+            # to make sure that the site below remains visible, we do not center the token vertically
+            item.setOffset(-pixmap.width()/2, 0)
+            item.setParentItem(self)
+    
+    def boundingRect(self):
+        return self.childrenBoundingRect()
+    
+    def paint(self, painter, option, widget=None):
+        pass
+
+    
 class EnemyItem(QtWidgets.QGraphicsPixmapItem):
     """A QGraphicsItem that displays an enemy token. *enemy* may also be an EnemyCategory in which case the 
     back side of an (unknown) enemy token is displayed."""
-    def __init__(self, enemy, coords):
+    def __init__(self, enemy):
         super().__init__()
         self.enemy = enemy
         pixmap = enemy.pixmap()
@@ -167,7 +189,6 @@ class EnemyItem(QtWidgets.QGraphicsPixmapItem):
                                Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.setPixmap(pixmap)
         self.setOffset(-pixmap.width()/2, -pixmap.height()/2)
-        self.setPos(coords.center())
 
 
 class PersonItem(QtWidgets.QGraphicsPixmapItem):
