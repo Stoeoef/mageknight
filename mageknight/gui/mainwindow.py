@@ -71,12 +71,11 @@ class MainWindow(QtWidgets.QWidget):
         
         # TODO: remove debugging stuff
         from mageknight.core import units
-        self.match.currentPlayer.addUnit(units.get('guardian_golems'))
+        self.match.currentPlayer.addUnit(units.get('foresters'))
             
         #QtCore.QTimer.singleShot(0, lambda: self.showView('combat'))
         #from mageknight.data import enemies
         #self.match.combat.begin([enemies.get('prowlers'), enemies.get('medusa')])
-        
         
     def availableViews(self):
         """Return a list of (view id, view title)-tuples for all available views. Views are popup windows
@@ -85,7 +84,8 @@ class MainWindow(QtWidgets.QWidget):
             ('combat', self.tr("Combat")),
             ('shop', self.tr("Shop")),
             ('fame', self.tr("Fame board")),
-            ('cards', self.tr("Cards"))
+            ('terrain', self.tr("Terrain")),
+            ('cards', self.tr("Cards")),
         ]
         
     def getView(self, viewId):
@@ -103,6 +103,9 @@ class MainWindow(QtWidgets.QWidget):
             elif viewId == 'fame':
                 from mageknight.gui import fameview
                 self._views[viewId] = fameview.FameView(self, self.client)
+            elif viewId == 'terrain':
+                from mageknight.gui import terraincostsview
+                self._views[viewId] = terraincostsview.TerrainCostsView(self, self.client)
             elif viewId == 'cards':
                 from mageknight.gui import cardsview
                 self._views[viewId] = cardsview.CardsView(self)

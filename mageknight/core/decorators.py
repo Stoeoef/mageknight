@@ -48,7 +48,7 @@ class EnhancedDecorator:
         
     
 @EnhancedDecorator
-def action(f, states=None):
+def action(f, *states):
     """This decorator is used to wrap player actions. It has the following functions:
         - The action will be wrapped into an undo/redo macro.
         - If the user cancels the action (e.g. by canceling a dialog) or if he chooses an invalid action,
@@ -57,7 +57,7 @@ def action(f, states=None):
           and abort if not.
     """
     def wrapper(self, *args, **kwargs):
-        if states is not None and self.state not in states:
+        if len(states) > 0 and self.state not in states:
             print("Cannot perform this action in state '{}'.".format(self.state.name))
             return
         self.stack.beginMacro()

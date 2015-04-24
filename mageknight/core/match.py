@@ -34,6 +34,7 @@ class Match(QtCore.QObject):
     """This is the central object managing a match."""
     stateChanged = QtCore.pyqtSignal(State)
     roundChanged = QtCore.pyqtSignal(Round)
+    terrainCostsChanged = QtCore.pyqtSignal()
     
     def __init__(self, players):
         super().__init__()
@@ -47,6 +48,7 @@ class Match(QtCore.QObject):
         self.effects = effectlist.EffectList(self)
         self.shop = shop.Shop(self)
         self.shop.refreshUnits()
+        self.resetTerrainCosts()
         self.combat = combat.Combat(self)
         
         for player in self.players:
@@ -100,15 +102,14 @@ class Match(QtCore.QObject):
         """Return whether night rules hold currently. This is true during nights, in dungeons, etc."""
         return self.round.type == RoundType.night
         
-    def terrainIsPassable(self, terrain):
+    def isTerrainPassable(self, terrain):
         """Return whether the given terrain is currently passable for the current player. This might change
         as an effect of e.g. spells."""
         assert isinstance(terrain, Terrain)
-        return terrain not in (Terrain.lake, Terrain.mountain)
+        return terrain in self.terrainCosts
     
-    def getTerrainCost(self, terrain):
-        """Return the current cost of the given terrain."""
-        costs = {
+    def resetTerrainCosts(self):
+        self.terrainCosts = {
             Terrain.plains: 2,
             Terrain.hills: 3,
             Terrain.forest: 3 if self.round.type == RoundType.day else 5,
@@ -117,9 +118,23 @@ class Match(QtCore.QObject):
             Terrain.swamp: 5,
             Terrain.city: 2,
         }
-        if terrain not in costs:
-            raise ValueError("Terrain {} is not passable".format(terrain.name))
-        return costs[terrain]
+        
+    def reduceTerrainCost(self, terrain, amount, minimum):
+        if terrain in self.terrainCosts: # should always be the case
+            self.setTerrainCost(terrain, max(minimum, self.terrainCosts[terrain] - amount))
+        
+    def setTerrainCost(self, terrain, cost):
+        """Set the movement cost of the given terrain to *cost*. If *cost* is None, the terrain will not
+        be passable."""
+        self.stack.push(stack.Call(self._setTerrainCost, terrain, cost),
+                        stack.Call(self._setTerrainCost, terrain, self.terrainCosts.get(terrain)))
+        
+    def _setTerrainCost(self, terrain, cost):
+        if cost is not None:
+            self.terrainCosts[terrain] = cost
+        elif terrain in self.terrainCosts:
+            del self.terrainCosts[terrain]
+        self.terrainCostsChanged.emit()
     
     def _manaOptions(self, player, color):
         colors = [color] # during day we might add Mana.gold, skills might add even more
@@ -244,9 +259,9 @@ class Match(QtCore.QObject):
         if not coords.isNeighborOf(pos):
             raise InvalidAction("Can only move to adjacent fields.")
         terrain = self.map.terrainAt(coords)
-        if terrain is None or not self.terrainIsPassable(terrain):
+        if terrain is None or not self.isTerrainPassable(terrain):
             raise InvalidAction("This field is not passable")
-        self.payMovePoints(self.getTerrainCost(terrain))
+        self.payMovePoints(self.terrainCosts[terrain])
         self.map.movePerson(player, coords)
         
     @action
