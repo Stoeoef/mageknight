@@ -53,6 +53,7 @@ class Combat(basecombat.BaseCombat):
         # TODO: reset other stuff?
         for unit in self.match.currentPlayer.units:
             self.setUnitProtected(unit, False)
+        self.combatStarted.emit()
     
     def checkEffectPlayable(self, effect=None, type=EffectType.unknown):
         self.setEffectsPlayed(True)

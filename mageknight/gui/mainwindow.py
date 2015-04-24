@@ -75,6 +75,9 @@ class MainWindow(QtWidgets.QWidget):
         
         self.resize(1000, 700)
         
+        # Show combat view automatically if combat starts
+        self.match.combat.combatStarted.connect(lambda: self.showView('combat'))
+        
         
         # TODO: remove debugging stuff
         from mageknight.core import units

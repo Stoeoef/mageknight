@@ -27,7 +27,7 @@ from . import basemap
 
 class SiteOnMap:
     def __init__(self, site, coords):
-        self.site = site
+        self.type = site
         self.coords = coords
         self.isActive = True
         self.enemies = []
@@ -50,7 +50,7 @@ class Map(basemap.Map):
         super().addTile(tile, coords)
         for c, site in tile.allSites():
             site = SiteOnMap(site, coords + c)
-            if site.site is Site.maraudingOrcs:
+            if site.type is Site.maraudingOrcs:
                 enemy = self.match.chooseEnemy(EnemyCategory.maraudingOrcs)
                 site.enemies.append(enemy)
             
@@ -58,5 +58,5 @@ class Map(basemap.Map):
 
     def getAdjacentMaraudingEnemies(self, coords):
         return [site for site in self.adjacentSites(coords)
-                if site.site in [Site.maraudingOrcs, Site.draconum]]
+                if site.type in [Site.maraudingOrcs, Site.draconum]]
         

@@ -88,7 +88,7 @@ class Match(QtCore.QObject):
         effects).
         """
         if self.state.inCombat:
-            self.combat.checkEffectPlayable(type, effect)
+            self.combat.checkEffectPlayable(effect, type)
         else:
             if effect is not None:
                 type = effect.type
@@ -265,7 +265,7 @@ class Match(QtCore.QObject):
             raise InvalidAction("This field is not passable")
         site = self.map.siteAt(coords) # returns only active sites
         if site is not None:
-            if site.site in [Site.maraudingOrcs, Site.draconum]:
+            if site.type in [Site.maraudingOrcs, Site.draconum]:
                 raise InvalidAction("Cannot enter a field occupied by a marauding enemy.")
         
         self.payMovePoints(self.terrainCosts[terrain])
@@ -277,8 +277,9 @@ class Match(QtCore.QObject):
             for site in oldEnemies.intersection(newEnemies):
                 enemies.extend(site.enemies)
             self.combat.begin(enemies)
-        elif any(site.site in [Site.maraudingOrcs, Site.draconum] for site in self.map.adjacentSites(coords)):
-            self.actions.add('marauding', self.tr("Fight marauding enemies")) 
+        elif len(self.map.getAdjacentMaraudingEnemies(coords)) > 0:
+            self.actions.add('marauding', self.tr("Fight marauding enemies"))
+        else: self.actions.remove('marauding') 
         
     @action
     def activateUnit(self, player, unit, action):

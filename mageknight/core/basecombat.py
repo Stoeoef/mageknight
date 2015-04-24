@@ -27,6 +27,7 @@ from mageknight.data import * # @UnusedWildImport
         
 
 class BaseCombat(QtCore.QObject):
+    combatStarted = QtCore.pyqtSignal()
     enemiesChanged = QtCore.pyqtSignal()
     
     def __init__(self, match):

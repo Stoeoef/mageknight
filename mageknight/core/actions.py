@@ -61,10 +61,12 @@ class ActionList(QtCore.QObject):
         self.match.stack.push(stack.Call(self._insert, i, action),
                               stack.Call(self._remove, action))
     
-    def remove(self, action):
-        index = self._list.index(action)
-        self.match.stack.push(stack.Call(self._remove, action),
-                              stack.Call(self._insert, index, action))
+    def remove(self, actionId):
+        for index, action in enumerate(self._list):
+            if action.id == actionId:
+                self.match.stack.push(stack.Call(self._remove, action),
+                                      stack.Call(self._insert, index, action))
+                break
         
     def _insert(self, index, action):
         self._list.insert(index, action)

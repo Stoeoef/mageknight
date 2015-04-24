@@ -180,7 +180,7 @@ class SiteItem(QtWidgets.QGraphicsItem):
         pass
 
     def __repr__(self):
-        return "<SiteItem {} at {}>".format(self.site.site, self.site.coords)
+        return "<SiteItem {} at {}>".format(self.site.type, self.site.coords)
 
     
 class EnemyItem(QtWidgets.QGraphicsPixmapItem):

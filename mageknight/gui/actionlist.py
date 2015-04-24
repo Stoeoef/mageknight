@@ -35,7 +35,7 @@ class ActionList(QtWidgets.QWidget):
         
     def _update(self):
         for i in range(self.layout.count()):
-            widget = self.layout.itemAt(i)
+            widget = self.layout.itemAt(i).widget()
             self.layout.removeWidget(widget)
             widget.setParent(None)
             
