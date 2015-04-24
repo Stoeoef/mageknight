@@ -30,6 +30,8 @@ from mageknight.data import * # @UnusedWildImport
 
 @functools.total_ordering
 class Effect:
+    type = EffectType.unknown
+    
     def add(self, other):
         return False
     
@@ -99,6 +101,7 @@ class PointsEffect(Effect):
     
 class MovePoints(PointsEffect):
     title = translate("Effects", "Move")
+    type = EffectType.movement
     
     def __init__(self, points):
         super().__init__(points)
@@ -109,10 +112,12 @@ class MovePoints(PointsEffect):
         
 class InfluencePoints(PointsEffect):
     title = translate("Effects", "Influence")
+    type = EffectType.influence
     # note: influence points can be negative due to reputation
 
     
 class BlockPoints(PointsEffect):
+    type = EffectType.combat
     def __init__(self, points, element=Element.physical):
         super().__init__(points)
         assert isinstance(element, Element)
@@ -132,6 +137,7 @@ class BlockPoints(PointsEffect):
 
 
 class AttackPoints(PointsEffect):
+    type = EffectType.combat
     def __init__(self, points, element=Element.physical, range=AttackRange.normal):
         super().__init__(points)
         assert isinstance(element, Element)

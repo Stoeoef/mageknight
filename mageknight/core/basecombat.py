@@ -27,13 +27,11 @@ from mageknight.data import * # @UnusedWildImport
         
 
 class BaseCombat(QtCore.QObject):
-    stateChanged = QtCore.pyqtSignal(CombatState)
     enemiesChanged = QtCore.pyqtSignal()
     
     def __init__(self, match):
         super().__init__()
         self.match = match
-        self.state = CombatState.noCombat
         self.effectsPlayed = False
         self.enemies = []
         
@@ -50,17 +48,7 @@ class BaseCombat(QtCore.QObject):
         
     def selectedEnemies(self):
         return [enemy for enemy in self.enemies if enemy.isSelected]
-    
-    def setState(self, state):
-        assert isinstance(state, CombatState)
-        self.match.stack.push(stack.Call(self._setState, state),
-                              stack.Call(self._setState, self.state))
-    
-    def _setState(self, state):
-        if state != self.state:
-            self.state = state
-            self.stateChanged.emit(state)
-            
+                
     def setEffectsPlayed(self, effectsPlayed):
         if effectsPlayed != self.effectsPlayed:
             self.match.stack.push(stack.Call(self._setEffectsPlayed, effectsPlayed),

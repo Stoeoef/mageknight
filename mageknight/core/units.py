@@ -135,10 +135,10 @@ class GuardianGolems(RegularUnit):
         match.effects.add(dialogs.choose(options))
         
     def action2(self, match, player):
-        match.effects.add(effects.BlockPoints(4, type=Element.fire))
+        match.effects.add(effects.BlockPoints(4, element=Element.fire))
         
     def action3(self, match, player):
-        match.effects.add(effects.BlockPoints(4, type=Element.ice))
+        match.effects.add(effects.BlockPoints(4, element=Element.ice))
     
         
 class Herbalists(RegularUnit):
@@ -199,8 +199,8 @@ class NorthernMonks(RegularUnit):
         match.effects.add(dialogs.choose(options))
         
     def action2(self, match, player):
-        options = [effects.AttackPoints(4, type=Element.ice),
-                   effects.BlockPoints(4, type=Element.ice)]
+        options = [effects.AttackPoints(4, element=Element.ice),
+                   effects.BlockPoints(4, element=Element.ice)]
         match.effects.add(dialogs.choose(options))
         
         
@@ -240,8 +240,8 @@ class RedCapeMonks(RegularUnit):
         match.effects.add(dialogs.choose(options))
         
     def action2(self, match, player):
-        options = [effects.AttackPoints(4, type=Element.fire),
-                   effects.BlockPoints(4, type=Element.fire)]
+        options = [effects.AttackPoints(4, element=Element.fire),
+                   effects.BlockPoints(4, element=Element.fire)]
         match.effects.add(dialogs.choose(options))
     
     

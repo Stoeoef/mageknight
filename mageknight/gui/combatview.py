@@ -23,7 +23,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt
 
-from mageknight.data import CombatState
+from mageknight.data import State
 from mageknight import utils
 from mageknight.gui import stock, misc
 
@@ -47,7 +47,7 @@ class CombatScene(QtWidgets.QGraphicsScene):
         self.setBackgroundBrush(QtGui.QBrush(Qt.darkGray))
         self.match = match
         self.combat = match.combat
-        self.match.combat.stateChanged.connect(self._refresh)
+        self.match.stateChanged.connect(self._refresh)
         
         fm = QtGui.QFontMetrics(self.font())
         group = misc.VerticalGroup(alignment=Qt.AlignLeft)
@@ -86,22 +86,22 @@ class CombatScene(QtWidgets.QGraphicsScene):
         self._updateButtons()
         
     def _updateTitles(self):
-        state = self.combat.state
-        if state == CombatState.rangeAttack:
+        state = self.match.state
+        if state == State.rangeAttack:
             self.title1.setText(self.tr("1. Ranged/siege attack phase"))
             selected = self.combat.selectedEnemies()
             if len(selected) == 0:
                 self.title2.setText(self.tr("Choose enemies"))
             else: self.title2.setText(self.tr("Play attack"))
 
-        elif state == CombatState.block:
+        elif state == State.block:
             self.title1.setText(self.tr("2. Block phase"))
             selected = self.combat.selectedEnemies()
             if len(selected) == 0:
                 self.title2.setText(self.tr("Choose enemy"))
             else: self.title2.setText(self.tr("Play block"))
             
-        elif state == CombatState.assignDamage:
+        elif state == State.assignDamage:
             self.title1.setText(self.tr("3. Assign damage phase"))
             selected = self.combat.selectedEnemies()
             if len(selected) == 0:
@@ -110,7 +110,7 @@ class CombatScene(QtWidgets.QGraphicsScene):
                 damage = self.combat.selectedEnemies()[0].damage
                 self.title2.setText(self.tr("Assign {} damage").format(damage))
             
-        elif state == CombatState.attack:
+        elif state == State.attack:
             self.title1.setText(self.tr("4. Attack phase"))
             selected = self.combat.selectedEnemies()
             if len(selected) == 0:
@@ -122,34 +122,34 @@ class CombatScene(QtWidgets.QGraphicsScene):
             self.title2.setText('')
             
     def _updateEnemies(self):
-        state = self.combat.state
-        if state in [CombatState.noCombat, CombatState.end]:
+        state = self.match.state
+        if not state.inCombat:
             self.enemies.clear()
             self.stock.clear()
         else:
             self.enemies.sync(EnemyItem, self.match.combat.enemies)
-            if state == CombatState.assignDamage:
+            if state == State.assignDamage:
                 from . import playerarea
                 self.stock.sync(playerarea.UnitItem, self.match.currentPlayer.units)
             else:
                 self.stock.clear()
 
         for item in self.enemies.items():
-            if state in [CombatState.rangeAttack, CombatState.attack]:
+            if state in [State.rangeAttack, State.attack]:
                 item.setGray(not item.enemy.isAlive)
-            elif state == CombatState.block:
+            elif state == State.block:
                 item.setGray(not item.enemy.isAttacking)
-            elif state == CombatState.assignDamage:
+            elif state == State.assignDamage:
                 item.setGray(not item.enemy.isAttacking or item.enemy.damage == 0)
                 
     def _updateButtons(self):
-        state = self.combat.state
-        if state in [CombatState.noCombat, CombatState.end]:
+        state = self.match.state
+        if not state.inCombat:
             self.okButton.setVisible(False)
             self.skipButton.setVisible(False)
         else:
             self.okButton.setVisible(True)
-            if state != CombatState.assignDamage:
+            if state != State.assignDamage:
                 self.okButton.setText(self.tr("Ok"))
                 self.skipButton.setVisible(True)
             else:

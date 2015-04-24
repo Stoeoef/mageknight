@@ -49,29 +49,34 @@ class Combat(basecombat.BaseCombat):
     def begin(self, enemies):
         enemies = [EnemyInCombat(enemy) for enemy in enemies]
         self.setEnemies(enemies)
-        self.setState(CombatState.rangeAttack)
+        self.setState(State.rangeAttack)
         # TODO: reset other stuff?
         for unit in self.match.currentPlayer.units:
             self.setUnitProtected(unit, False)
     
-    def checkEffectPlayable(self, effect=None):
-        if self.state in [CombatState.noCombat, CombatState.end]:
-            return
-        elif self.state == CombatState.assignDamage:
+    def checkEffectPlayable(self, effect=None, type=EffectType.unknown):
+        self.setEffectsPlayed(True)
+        
+        state = self.match.state
+        assert state.inCombat
+        if state is State.assignDamage:
             raise InvalidAction("Cannot play effects during assign damage phase.")
         else:
             if not self.hasSelectedEnemy():
                 raise InvalidAction("Must select enemies first.")
-            
+        
         if effect is not None:
-            if isinstance(effect, effects.HealPoints):
-                # TODO: Actually, it should not be possible to play the heal card anyway
-                raise InvalidAction("Cannot play heal points during combat")
-            elif isinstance(effect, effects.BlockPoints):
-                if self.state != CombatState.block:
+            type = effect.type
+            
+        if type in [EffectType.healing, EffectType.movement, EffectType.influence]:
+            raise InvalidAction("Cannot play healing/movement/influence during combat.")
+        
+        if effect is not None: 
+            if isinstance(effect, effects.BlockPoints):
+                if state != State.block:
                     raise InvalidAction("Cannot play block points now")
             elif isinstance(effect, effects.AttackPoints):
-                if self.state == CombatState.rangeAttack:
+                if state == State.rangeAttack:
                     if effect.range == AttackRange.normal:
                         raise InvalidAction("Can only play ranged/siege attack now")
                     fortificationLevel = 0
@@ -86,26 +91,24 @@ class Combat(basecombat.BaseCombat):
                     elif fortificationLevel == 1 and effect.range != AttackRange.siege:
                             raise InvalidAction("Enemies are fortified. Must play siege attack.")
 
-                elif self.state != CombatState.attack:
+                elif state != State.attack:
                     raise InvalidAction("Cannot play attack points now")
-        self.setEffectsPlayed(True)
         
     def setState(self, state):
-        print("SET STATE", state)
         self.clearSelection()
         self.setEffectsPlayed(False)
         
         # Skip states under certain circumstances
         if not any(enemy.isAlive for enemy in self.enemies):
-            state = CombatState.end
-        if state == CombatState.block and not any(enemy.isAttacking for enemy in self.enemies):
-            state = CombatState.attack
-        if state == CombatState.assignDamage and \
+            state = State.end
+        if state == State.block and not any(enemy.isAttacking for enemy in self.enemies):
+            state = State.attack
+        if state == State.assignDamage and \
                 not any(enemy.isAttacking and enemy.damage > 0 for enemy in self.enemies):
-            state = CombatState.attack
+            state = State.attack
         
-        super().setState(state)
-        if self.state == CombatState.end:
+        self.match.setState(state)
+        if self.match.state == State.combatEnd:
             self.setEnemies([])
             
         # If only one enemy is active, select it
@@ -118,21 +121,21 @@ class Combat(basecombat.BaseCombat):
         (e.g. alive and not blocked yet)."""
         if not enemy.isAlive:
             return False
-        if self.state == CombatState.block:
+        if self.match.state == State.block:
             return not enemy.isBlocked
-        if self.state == CombatState.assignDamage:
+        if self.match.state == State.assignDamage:
             return enemy.isAttacking and enemy.damage > 0
         return True
         
     def setEnemySelected(self, enemy, select):
-        if self.state in [CombatState.noCombat, CombatState.end]:
+        if self.match.state in [State.noCombat, State.end]:
             raise InvalidAction("Cannot select/deselect an enemy currently.")
         if self.effectsPlayed:
             raise InvalidAction("Cannot change enemy selection after playing effects.")
         if select and not self.isEnemyActive(enemy):
             raise InvalidAction("Cannot select this enemy.")
                 
-        if select and self.state in [CombatState.block, CombatState.assignDamage]:
+        if select and self.match.state in [State.block, State.assignDamage]:
             # only one enemy can be targeted in these phases. Thus: deselect all others
             for e in self.enemies:
                 super().setEnemySelected(e, e == enemy)
@@ -140,28 +143,30 @@ class Combat(basecombat.BaseCombat):
             super().setEnemySelected(enemy, select)
         
     def next(self):
-        if self.state in [CombatState.noCombat, CombatState.end]:
+        state = self.match.state
+        if not state.inCombat:
             raise InvalidAction("Cannot go to next combat state now.")
         if not self.hasSelectedEnemy():
             raise InvalidAction("Must select an enemy first.")
-        if self.state == CombatState.rangeAttack:
+        if state == State.rangeAttack:
             self.resolveAttack(ranged=True)
-        elif self.state == CombatState.block:
+        elif state == State.block:
             self.resolveBlock()
-        elif self.state == CombatState.assignDamage:
+        elif state == State.assignDamage:
             self.assignDamageToHero()
-        elif self.state == CombatState.attack:
+        elif state == State.attack:
             self.resolveAttack()
         # reenter the state (will skip to the next state if e.g. all enemies are dead)
-        self.setState(self.state) 
+        self.setState(state) 
         
     def skip(self):
-        if self.state == CombatState.rangeAttack:
-            self.setState(CombatState.block)
-        elif self.state == CombatState.block:
-            self.setState(CombatState.assignDamage)
-        elif self.state == CombatState.attack:
-            self.setState(CombatState.end)
+        state = self.match.state
+        if state == State.rangeAttack:
+            self.setState(State.block)
+        elif state == State.block:
+            self.setState(State.assignDamage)
+        elif state == State.attack:
+            self.setState(State.end)
         else:
             raise InvalidAction("Cannot skip to next combat state now.")
         
@@ -217,7 +222,7 @@ class Combat(basecombat.BaseCombat):
             self.blockEnemy(enemy)
             
     def assignDamageToHero(self):
-        if self.state != CombatState.assignDamage:
+        if self.match.state != State.assignDamage:
             raise InvalidAction("Cannot assign damage in this state.")
         assert len(self.selectedEnemies()) == 1
         enemy = self.selectedEnemies()[0]
@@ -234,7 +239,7 @@ class Combat(basecombat.BaseCombat):
         self.setDamage(enemy, 0)
         
     def assignDamageToUnit(self, unit):
-        if self.state != CombatState.assignDamage:
+        if self.match.state != State.assignDamage:
             raise InvalidAction("Cannot assign damage in this state.")
         if not self.hasSelectedEnemy():
             raise InvalidAction("Must select an enemy first.")

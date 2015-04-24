@@ -23,7 +23,7 @@
 import enum, random
 
 __all__ = ['InvalidAction', 'CancelAction', 'State', 'RoundType', 'Round', 'Mana',
-           'CombatState', 'AttackRange', 'Element', 'EffectType']
+           'AttackRange', 'Element', 'EffectType']
 
 
 class InvalidAction(Exception):
@@ -41,9 +41,23 @@ class CancelAction(Exception):
 
 class State(enum.Enum):
     # TODO: more states are necessary for e.g. pillaging, resting, level-up...
-    init = 1
-    movement = 2
-    action = 3
+    movement = 1     # movement phase
+    interaction = 2  # 
+    combatEnd = 3    # after a combat, before end of turn. User may play special effects and healing.
+    
+    # Combat states
+    rangeAttack = 11
+    block = 12
+    assignDamage = 13
+    attack = 14
+    
+    @staticmethod
+    def combatStates():
+        return (State.rangeAttack, State.block, State.assignDamage, State.attack)
+    
+    @property
+    def inCombat(self):
+        return self in State.combatStates()
     
     
 class RoundType(enum.Enum):
@@ -80,17 +94,7 @@ class Mana(enum.Enum):
     @staticmethod
     def basicColors():
         return (Mana.red, Mana.blue, Mana.green, Mana.white)
-
-
-class CombatState(enum.Enum):
-    """Phase of a combat."""  
-    noCombat = 0
-    rangeAttack = 1
-    block = 2
-    assignDamage = 3
-    attack = 4
-    end = 5
-        
+ 
 
 class AttackRange(enum.Enum):
     """Range of a player attack."""
@@ -130,7 +134,7 @@ class Element(enum.Enum):
         
 class EffectType(enum.Enum):
     """Each card,unit action, skill etc. has a type which determines when it can be played."""
-    default = 0
+    unknown = 0
     movement = 1
     influence = 2
     combat = 3

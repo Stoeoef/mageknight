@@ -27,26 +27,12 @@ from mageknight import stack, hexcoords
 from mageknight.data import *  # @UnusedWildImport
 from mageknight.core import source, player, map, effectlist, effects, cards, units, shop, combat # @Reimport
 from mageknight.gui import dialogs
-
-
-# use this to wrap player actions
-# TODO: Check for current player
-def action(f):
-    def wrap(self, *args, **kwargs):
-        self.stack.beginMacro()
-        try:
-            f(self, *args, **kwargs)
-            self.stack.endMacro(abortIfEmpty=True) # the macro is often empty, when new info was revealed
-        except CancelAction: # action was aborted e.g. by canceling a dialog
-            self.stack.abortMacro()
-        except InvalidAction as e:
-            print(e)
-            self.stack.abortMacro()
-    return wrap
+from .decorators import action
 
 
 class Match(QtCore.QObject):
     """This is the central object managing a match."""
+    stateChanged = QtCore.pyqtSignal(State)
     roundChanged = QtCore.pyqtSignal(Round)
     
     def __init__(self, players):
@@ -68,7 +54,19 @@ class Match(QtCore.QObject):
             self.map.addPerson(player, hexcoords.HexCoords(0, 0))
             player.initDeedDeck()
             player.drawCards()
-        self.currentPlayer = self.players[0]
+        self.currentPlayer = self.players[0]    
+    
+    def setState(self, state):
+        print("SET STATE", state)
+        assert isinstance(state, State)
+        if state != self.state:
+            self.match.stack.push(stack.Call(self._setState, state),
+                                  stack.Call(self._setState, self.state))
+    
+    def _setState(self, state):
+        if state != self.state:
+            self.state = state
+            self.stateChanged.emit(state)
                 
     def revealNewInformation(self):
         """Call this whenever new information is revealed. It will clear the undo stack."""
@@ -78,6 +76,25 @@ class Match(QtCore.QObject):
             self.stack.beginMacro()
         else:
             self.stack.clear()
+    
+    def checkEffectPlayable(self, effect=None, type=EffectType.unknown):
+        """Check whether the given effect is playable in the current state and raise an InvalidAction error
+        if not. Instead of specifying an effect it is possible to specify only an EffectType, or give no
+        information at all (in this case the method will only check whether it is allowed to play any
+        effects).
+        """
+        if self.state.inCombat:
+            self.combat.checkEffectPlayable(type, effect)
+        else:
+            if effect is not None:
+                type = effect.type
+                
+            if type == EffectType.movement and self.state is not State.movement:
+                raise InvalidAction("Cannot play movement effects now.")
+            elif type == EffectType.influence and self.state is not State.interaction:
+                raise InvalidAction("Cannot play influence effects now.")
+            elif type == EffectType.combat:
+                raise InvalidAction("Cannot play combat effects now.")
         
     def nightRulesApply(self):
         """Return whether night rules hold currently. This is true during nights, in dungeons, etc."""
@@ -104,16 +121,17 @@ class Match(QtCore.QObject):
             raise ValueError("Terrain {} is not passable".format(terrain.name))
         return costs[terrain]
     
-    def _manaOptions(self, player, colors):
-        if isinstance(colors, Mana):
-            colors = [colors]
-        colors = [c for c in Mana if c in colors] # copy and sort
+    def _manaOptions(self, player, color):
+        colors = [color] # during day we might add Mana.gold, skills might add even more
+        
         if not self.nightRulesApply():
-            assert Mana.black not in colors
-            if Mana.gold not in colors:
+            if color is Mana.black:
+                return []
+            elif color is not Mana.gold:
                 colors.append(Mana.gold)
         else:
-            assert Mana.gold not in colors
+            if color is Mana.gold:
+                return []
         
         options = []
         
@@ -142,11 +160,9 @@ class Match(QtCore.QObject):
         """Return whether the player can pay a mana of the given color."""
         return len(self._manaOptions(self.currentPlayer, color)) > 0
         
-    def payMana(self, colors):
-        """Pay a mana in one of the given colors (*colors* may be a single color or a list of colors).
-        Raise an InvalidAction if that is not possible. Return the chosen color.
-        """
-        options = self._manaOptions(self.currentPlayer, colors)
+    def payMana(self, color):
+        """Pay a mana in the given color."""
+        options = self._manaOptions(self.currentPlayer, color)
         if len(options) == 0:
             if self.source.limit == 0:
                 raise InvalidAction("You don't have mana (cannot use another die).")
@@ -162,7 +178,6 @@ class Match(QtCore.QObject):
             self.source.take(color)
         else:
             self.currentPlayer.removeCrystal(color)
-        return color
     
     def payMovePoints(self, cost):
         if self.effects.movePoints < cost:
@@ -187,7 +202,7 @@ class Match(QtCore.QObject):
         """Play the given card. For cards with several actions, *effectIndex* determines which action
         to play (e.g. 0 for basic effect and 1 for strong effect of action cards).
         """
-        self.combat.checkEffectPlayable()
+        self.checkEffectPlayable(type=card.effectType)
         if isinstance(card, cards.ActionCard):
             if effectIndex == 0:
                 #player.discard(card) # TODO: disabled to make debugging life easier
@@ -212,19 +227,17 @@ class Match(QtCore.QObject):
     def playSideways(self, player, card, effectIndex):
         """Play the given card sideways. *effectIndex* is the index of the desired effect from
         self.sidewaysEffects()."""
-        self.combat.checkEffectPlayable()
+        # No need to call checkEffectPlayable, because it will be called by effects.add.
         effect = self.sidewaysEffects()[effectIndex]
         #player.discard(card) # TODO: disabled to make debugging life easier
         self.effects.add(effect)
         
-    @action
+    @action(State.movement)
     def movePlayer(self, player, coords):
         """Move the given player to the specified hex. Use this method only for standard moves in the
         movement phase, not for Flight, Underground Travel and similar special effects. The player's
         move points will be reduced appropriately.
         """
-        if not self.state == State.movement:
-            raise InvalidAction("Can only move during movement phase.")
         pos = self.map.persons[player]
         if pos == coords:
             return
@@ -240,7 +253,7 @@ class Match(QtCore.QObject):
     def activateUnit(self, player, unit, action):
         assert isinstance(unit, units.Unit)
         assert action in unit.actions
-        self.combat.checkEffectPlayable()
+        self.checkEffectPlayable() # TODO action type
         if not unit.isReady:
             raise InvalidAction("This unit is spent.")
         if unit.isWounded:
@@ -250,7 +263,7 @@ class Match(QtCore.QObject):
         unit.activate(action, self, player)
         player.spendUnit(unit)
         
-    @action
+    @action(State.interaction)
     def recruitUnit(self, player, unit):
         # TODO: check for interaction
         if not self.map.siteAtPlayer(player) in unit.sites:
@@ -263,22 +276,18 @@ class Match(QtCore.QObject):
         self.shop.takeUnit(unit)
         player.addUnit(unit)
         
-    @action
+    @action(State.combatStates())
     def setEnemySelected(self, player, enemy, selected):
         self.combat.setEnemySelected(enemy, selected)
     
-    @action
+    @action(State.combatStates())
     def combatNext(self, player):
         self.combat.next()
         
-    @action
+    @action(State.combatStates())
     def combatSkip(self, player):
         self.combat.skip()
     
-    @action
+    @action(State.assignDamage)
     def assignDamageToUnit(self, player, unit):
         self.combat.assignDamageToUnit(unit)
-    
-    
-        
-        

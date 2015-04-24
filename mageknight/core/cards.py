@@ -77,6 +77,7 @@ class BattleVersatility(BasicAction):
     name = 'battle_versatility'
     title = translate('cards', 'Battle Versatility')
     color = Mana.red
+    effectType = EffectType.combat
     
     def basicEffect(self, match, player):
         options = [effects.AttackPoints(2),
@@ -85,7 +86,6 @@ class BattleVersatility(BasicAction):
                   ]
         effect = dialogs.choose(options)
         match.effects.add(effect)
-    
     
     def strongEffect(self, match, player):
         options = [effects.AttackPoints(4),
@@ -103,6 +103,7 @@ class ColdToughness(BasicAction):
     name = 'cold_toughness'
     title = translate('cards', 'Cold Toughness')
     color = Mana.blue
+    effectType = EffectType.combat
     
     def basicEffect(self, match, player):
         options = [effects.AttackPoints(2, element=Element.ice),
@@ -125,7 +126,7 @@ class ColdToughness(BasicAction):
         elif enemy.attack == Element.coldFire:
             points += 2
             
-        # points += len(enemy.resistances) does not work correctly if enemy has cold fire resistance
+        # 'points += len(enemy.resistances)' does not work correctly if enemy has cold fire resistance
         for element in [Element.physical, Element.ice, Element.fire]:
             if element in enemy.resistances:
                 points += 1
@@ -137,7 +138,7 @@ class Concentration(BasicAction):
     name = 'concentration'
     title = translate('cards', 'Concentration')
     color = Mana.green
-    type = EffectType.special
+    effectType = EffectType.special
     
     def basicEffect(self, match, player):
         color = dialogs.chooseManaColor(fromList=[Mana.blue, Mana.white, Mana.red])
@@ -160,10 +161,11 @@ class Crystallize(BasicAction):
     name = 'crystallize'
     title = translate('cards', 'Crystallize')
     color = Mana.blue
-    type = EffectType.special
+    effectType = EffectType.special
     
     def basicEffect(self, match, player):
         color = dialogs.chooseManaColor(match, available=True)
+        match.payMana(color)
         player.addCrystal(color)
         
     def strongEffect(self, match, player):
@@ -175,6 +177,7 @@ class Determination(BasicAction):
     name = 'determination'
     title = translate('cards', 'Determination')
     color = Mana.blue
+    effectType = EffectType.combat
     
     def basicEffect(self, match, player):
         options = [effects.AttackPoints(2), effects.BlockPoints(2)]
@@ -188,6 +191,7 @@ class Improvisation(BasicAction):
     name = 'improvisation'
     title = translate('cards', 'Improvisation')
     color = Mana.red
+    effectType = EffectType.unknown
     
     def _effect(self, match, player, amount):
         card = dialogs.chooseCard(player)
@@ -210,7 +214,7 @@ class ManaDraw(BasicAction):
     name = 'mana_draw'
     title = translate('cards', 'Mana Draw')
     color = Mana.white
-    type = EffectType.special
+    effectType = EffectType.special
     
     def basicEffect(self, match, player):
         match.source.changeLimit(1)
@@ -228,6 +232,7 @@ class March(BasicAction):
     name = 'march'
     title = translate('cards', 'March')
     color = Mana.green
+    effectType = EffectType.movement
     
     def basicEffect(self, match, player):
         match.effects.add(effects.MovePoints(2))
@@ -240,6 +245,7 @@ class NobleManners(BasicAction):
     name = 'noble_manners'
     title = translate('cards', 'Noble Manners')
     color = Mana.white
+    effectType = EffectType.influence
     
     def basicEffect(self, match, player):
         match.effects.add(effects.InfluencePoints(2))
@@ -257,6 +263,7 @@ class Promise(BasicAction):
     name = 'promise'
     title = translate('cards', 'Promise')
     color = Mana.green
+    effectType = EffectType.influence
     
     def basicEffect(self, match, player):
         match.effects.add(effects.InfluencePoints(2))
@@ -269,6 +276,7 @@ class Rage(BasicAction):
     name = 'rage'
     title = translate('cards', 'rage')
     color = Mana.red
+    effectType = EffectType.combat
     
     def basicEffect(self, match, player):
         options = [effects.AttackPoints(2), effects.BlockPoints(2)]
@@ -282,6 +290,7 @@ class Stamina(BasicAction):
     name = 'stamina'
     title = translate('cards', 'Stamina')
     color = Mana.blue
+    effectType = EffectType.movement
     
     def basicEffect(self, match, player):
         match.effects.add(effects.MovePoints(2))
@@ -294,6 +303,7 @@ class Swiftness(BasicAction):
     name = 'swiftness'
     title = translate('cards', 'Swiftness')
     color = Mana.white
+    effectType = EffectType.unknown
     
     def basicEffect(self, match, player):
         match.effects.add(effects.MovePoints(2))
@@ -306,6 +316,7 @@ class Threaten(BasicAction):
     name = 'threaten'
     title = translate('cards', 'Threaten')
     color = Mana.red
+    effectType = EffectType.influence
     
     def basicEffect(self, match, player):
         match.effects.add(effects.InfluencePoints(2))
@@ -319,7 +330,7 @@ class Tranquility(BasicAction):
     name = 'tranquility'
     title = translate('cards', 'Tranquility')
     color = Mana.green
-    type = EffectType.healing
+    effectType = EffectType.healing
         
     def basicEffect(self, match, player):
         effect = effects.HealPoints(1)
@@ -340,7 +351,7 @@ class WillFocus(BasicAction):
     name = 'will_focus'
     title = translate('cards', 'Will Focus')
     color = Mana.green
-    type = EffectType.special
+    effectType = EffectType.special
      
     def basicEffect(self, match, player):
         color = dialogs.chooseManaColor()
