@@ -97,31 +97,6 @@ class ManaSourceWidget(QtWidgets.QWidget):
 #                 self.match.chooseSourceDie(i)
             
         
-class ToggleViewAction(QtWidgets.QAction):
-    """An action that is used to show/hide a view (see MainWindow.getView)."""
-    def __init__(self, parent, viewId, title):
-        super().__init__(parent)
-        self.viewId = viewId
-        self.setText(title)
-        self.setCheckable(True)
-        self.triggered.connect(self._triggered)
-        self._connected = False
-        
-    def _triggered(self, checked):
-        from mageknight.gui import mainwindow
-        view = mainwindow.mainWindow.getView(self.viewId)  # @UndefinedVariable
-        if checked:
-            if not self._connected:
-                view.installEventFilter(self)
-                self._connected = True
-            view.show()
-        else:
-            view.hide()
-            
-    def eventFilter(self, object, event):
-        if event.type() == QtCore.QEvent.Close:
-            self.setChecked(False)
-        return False # do not filter the event
         
     
 class ButtonBar(QtWidgets.QToolBar):
@@ -130,8 +105,8 @@ class ButtonBar(QtWidgets.QToolBar):
         super().__init__()
         self.match = match
         from mageknight.gui import mainwindow
-        for view, title in mainwindow.mainWindow.availableViews(): # @UndefinedVariable
-            self.addAction(ToggleViewAction(self, view, title))
+        for action in mainwindow.mainWindow.viewActions:  # @UndefinedVariable
+            self.addAction(action)
             
         stretch = QtWidgets.QWidget()
         stretch.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)

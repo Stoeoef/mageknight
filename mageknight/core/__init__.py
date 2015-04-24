@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # 
 
-from . import effects, cards
+from . import effects, cards, units
 
 from .source import ManaSource
 from .player import Player

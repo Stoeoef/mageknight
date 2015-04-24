@@ -23,7 +23,7 @@ from PyQt5 import QtCore
 
 from mageknight import stack, hexcoords
 from mageknight.data import *  # @UnusedWildImport
-from mageknight.core import source, player, map, effectlist, effects, cards # @Reimport
+from mageknight.core import source, player, map, effectlist, effects, cards, units, shop, combat # @Reimport
 from mageknight.gui import dialogs
 
 
@@ -57,10 +57,13 @@ class Match(QtCore.QObject):
         self.source = source.ManaSource(self, len(self.players)+2)
         self.map = map.Map(self, MapShape.wedge)
         self.effects = effectlist.EffectList(self)
+        self.shop = shop.Shop(self)
+        self.shop.refreshUnits()
+        self.combat = combat.Combat(self)
         
         for player in self.players:
             player.match = self
-            self.map.addPerson(player, hexcoords.HexCoords(0, 0))
+            self.map.addPerson(player, hexcoords.HexCoords(3, 7))
             player.initDeedDeck()
             player.drawCards()
         self.currentPlayer = self.players[0]
@@ -158,19 +161,32 @@ class Match(QtCore.QObject):
         else:
             self.currentPlayer.removeCrystal(color)
         return color
+    
+    def payMovePoints(self, cost):
+        if self.effects.movePoints < cost:
+            raise InvalidAction("Not enough move points")
+        if cost > 0:
+            self.effects.remove(effects.MovePoints(cost))
+     
+    def payInfluencePoints(self, cost):
+        if self.effects.influencePoints < cost:
+            raise InvalidAction("Not enough influence points")
+        if cost > 0:
+            self.effects.remove(effects.InfluencePoints(cost))
 
     @action
     def playCard(self, player, card, effectIndex=0):
         """Play the given card. For cards with several actions, *effectIndex* determines which action
         to play (e.g. 0 for basic effect and 1 for strong effect of action cards).
         """
+        self.combat.checkEffectPlayable()
         if isinstance(card, cards.ActionCard):
             if effectIndex == 0:
-                #player.removeCard(card) # TODO: disabled to make debugging life easier
+                #player.discard(card) # TODO: disabled to make debugging life easier
                 card.basicEffect(self, player)
             elif effectIndex == 1:
                 self.payMana(card.color)
-                #player.removeCard(card) # TODO: see above
+                #player.discard(card) # TODO: see above
                 card.strongEffect(self, player)
             else: raise ValueError("Invalid effect number for card '{}': {}".format(card.name, effectIndex))
         
@@ -188,8 +204,9 @@ class Match(QtCore.QObject):
     def playSideways(self, player, card, effectIndex):
         """Play the given card sideways. *effectIndex* is the index of the desired effect from
         self.sidewaysEffects()."""
+        self.combat.checkEffectPlayable()
         effect = self.sidewaysEffects()[effectIndex]
-        #player.removeCard(card) # TODO: disabled to make debugging life easier
+        #player.discard(card) # TODO: disabled to make debugging life easier
         self.effects.add(effect)
         
     @action
@@ -208,10 +225,51 @@ class Match(QtCore.QObject):
         terrain = self.map.terrainAt(coords)
         if terrain is None or not self.terrainIsPassable(terrain):
             raise InvalidAction("This field is not passable")
-        costs = self.getTerrainCost(terrain)
-        if self.effects.movePoints < costs:
-            raise InvalidAction("Not enough move points")
-        if costs > 0:
-            self.effects.remove(effects.MovePoints(costs))
+        self.payMovePoints(self.getTerrainCost(terrain))
         self.map.movePerson(player, coords)
-            
+        
+    @action
+    def activateUnit(self, player, unit, action):
+        assert isinstance(unit, units.Unit)
+        assert action in unit.actions
+        self.combat.checkEffectPlayable()
+        if not unit.isReady:
+            raise InvalidAction("This unit is spent.")
+        if unit.isWounded:
+            raise InvalidAction("This unit is wounded.")
+        if action.cost is not None:
+            self.payMana(action.cost)
+        unit.activate(action, self, player)
+        player.spendUnit(unit)
+        
+    @action
+    def recruitUnit(self, player, unit):
+        # TODO: check for interaction
+        if not self.map.siteAtPlayer(player) in unit.sites:
+            raise InvalidAction("Cannot recruit unit at this place.")
+        if player.unitLimit <= player.unitCount:
+            unitToDisband = dialogs.choose(player.units,
+                                           label=self.tr("All slots occupied. Choose a unit to disband."))
+            player.removeUnit(unitToDisband)
+        self.payInfluencePoints(unit.cost)
+        self.shop.takeUnit(unit)
+        player.addUnit(unit)
+        
+    @action
+    def setEnemySelected(self, player, enemy, selected):
+        self.combat.setEnemySelected(enemy, selected)
+    
+    @action
+    def combatNext(self, player):
+        self.combat.next()
+        
+    @action
+    def combatSkip(self, player):
+        self.combat.skip()
+    
+    @action
+    def assignDamageToUnit(self, player, unit):
+        self.combat.assignDamageToUnit(unit)
+        
+        
+        

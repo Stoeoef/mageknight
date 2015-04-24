@@ -24,7 +24,7 @@ from PyQt5 import QtCore
 
 from mageknight.data import * # @UnusedWildImport
 from mageknight import stack
-from . import effects
+from . import effects, cards
 
 
 class Player(QtCore.QObject):
@@ -36,6 +36,7 @@ class Player(QtCore.QObject):
     crystalsChanged = QtCore.pyqtSignal()
     cardCountChanged = QtCore.pyqtSignal()
     handCardsChanged = QtCore.pyqtSignal()
+    unitsChanged = QtCore.pyqtSignal()
                                 
     def __init__(self, name, hero=None):
         super().__init__()
@@ -53,7 +54,18 @@ class Player(QtCore.QObject):
         self.drawPile = []
         self.handCards = []
         self.discardPile = []
+        
+        self.units = []
     
+    @property
+    def unitCount(self):
+        return len(self.units)
+    
+    @property
+    def unitLimit(self):
+        """Return the number of units the player might own simultaneously."""
+        return (self.level+1) // 2
+        
     @property
     def drawPileCount(self):
         return len(self.drawPile)
@@ -96,19 +108,51 @@ class Player(QtCore.QObject):
         self.crystals[color] -= 1
         self.crystalsChanged.emit()
         
+    def addWounds(self, wounds, toDiscardPile=False):
+        if not toDiscardPile:
+            for _ in range(wounds):
+                self.addCard(cards.get('wound'))
+        else:
+            for _ in range(wounds):
+                self.addToDiscardPile(cards.get('wound'))
+        
+    def addCard(self, card):
+        self.match.stack.push(stack.Call(self._insertCard, self.handCardCount, card),
+                              stack.Call(self._removeCard, card))
+    
     def removeCard(self, card):
         index = self.handCards.index(card)
         self.match.stack.push(stack.Call(self._removeCard, card),
                               stack.Call(self._insertCard, index, card))
     
+    def discard(self, card):
+        assert card in self.handCards
+        self.removeCard(card)
+        self.addToDiscardPile(card)
+    
+    def addToDiscardPile(self, card):
+        self.match.stack.push(stack.Call(self._insertCardToDiscardPile, 0, card),
+                              stack.Call(self._removeCardFromDiscardPile, card))
+        
+        
     def _insertCard(self, index, card):
         self.handCards.insert(index, card)
         self.handCardsChanged.emit()
+        self.cardCountChanged.emit()
         
     def _removeCard(self, card):
         self.handCards.remove(card)
         self.handCardsChanged.emit()
+        self.cardCountChanged.emit()
     
+    def _insertCardToDiscardPile(self, index, card):
+        self.discardPile.insert(index, card)
+        self.cardCountChanged.emit()
+        
+    def _removeCardFromDiscardPile(self, card):
+        self.discardPile.remove(card)
+        self.cardCountChanged.emit()
+        
     def addFame(self, fame):
         self.match.stack.push(stack.Call(self._addFame, fame),
                               stack.Call(self._addFame, -fame))
@@ -127,6 +171,57 @@ class Player(QtCore.QObject):
         if reputation != self.reputation: 
             self.reputation = reputation
             self.reputationChanged.emit(reputation)
-             
+            
+    def addUnit(self, unit):
+        self.match.stack.push(stack.Call(self._insertUnit, len(self.units), unit),
+                              stack.Call(self._removeUnit, unit))
+        
+    def removeUnit(self, unit):
+        index = self.units.index(unit)
+        self.match.stack.push(stack.Call(self._removeUnit, unit),
+                              stack.Call(self._insertUnit, index, unit))
+                              
+    def _insertUnit(self, index, unit):
+        self.units.insert(index, unit)
+        unit.owner = self
+        self.unitsChanged.emit()
+        
+    def _removeUnit(self, unit):
+        self.units.remove(unit)
+        unit.owner = None
+        self.unitsChanged.emit()
+        
+    def spendUnit(self, unit):
+        self.match.stack.push(stack.Call(self._spendUnit, unit),
+                              stack.Call(self._readyUnit, unit))
+    
+    def readyUnit(self, unit):
+        self.match.stack.push(stack.Call(self._readyUnit, unit),
+                              stack.Call(self._spendUnit, unit))
+        
+    def _spendUnit(self, unit):
+        assert unit.isReady
+        unit.isReady = False
+        self.unitsChanged.emit()
+        
+    def _readyUnit(self, unit):
+        assert not unit.isReady
+        unit.isReady = True
+        self.unitsChanged.emit()
+        
+    def woundUnit(self, unit, wounds=1):
+        self.match.stack.push(stack.Call(self._woundUnit, unit, wounds),
+                              stack.Call(self._healUnit, unit, wounds))
+        
+    def _woundUnit(self, unit, wounds):
+        assert not unit.isWounded
+        assert wounds in (1, 2)
+        unit.wounds = wounds
+        self.unitsChanged.emit()
+        
+    def _healUnit(self, unit, wounds):
+        assert unit.wounds >= wounds
+        unit.wounds -= wounds
+        self.unitsChanged.emit()
         
     

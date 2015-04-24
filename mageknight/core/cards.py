@@ -35,6 +35,9 @@ class Card:
     
     def __repr__(self):
         return type(self).__name__
+    
+    def isWound(self):
+        return isinstance(self, Wound)
 
 
 def get(name):
@@ -62,6 +65,9 @@ class AdvancedAction(ActionCard):
     isAdvanced = True
 
 
+class Spell(Card):
+    pass
+
 class Wound(Card):
     def pixmap(self):
         return utils.getPixmap('mk/cards/wound.jpg')
@@ -84,8 +90,8 @@ class BattleVersatility(BasicAction):
     def strongEffect(self, match, player):
         options = [effects.AttackPoints(4),
                    effects.BlockPoints(4),
-                   effects.AttackPoints(3, type=AttackType.fire),
-                   effects.BlockPoints(3, type=BlockType.fire),
+                   effects.AttackPoints(3, element=Element.fire),
+                   effects.BlockPoints(3, element=Element.fire),
                    effects.AttackPoints(3, range=AttackRange.range),
                    effects.AttackPoints(2, range=AttackRange.siege)
                   ]
@@ -95,25 +101,26 @@ class BattleVersatility(BasicAction):
 
 class ColdToughness(BasicAction):
     name = 'cold_toughness'
-    title = translate('carsd', 'Cold Toughness')
+    title = translate('cards', 'Cold Toughness')
     color = Mana.blue
     
     def basicEffect(self, match, player):
-        options = [effects.AttackPoints(2, type=AttackType.ice),
-                   effects.BlockPoints(3, type=BlockType.ice),
+        options = [effects.AttackPoints(2, element=Element.ice),
+                   effects.BlockPoints(3, element=Element.ice),
                   ]
         effect = dialogs.choose(options)
         match.effects.add(effect)
     
     def strongEffect(self, match, player):
         # TODO: increase block depending on current enemy
-        match.effects.add(effects.BlockPoints(5, type=BlockType.ice))
+        match.effects.add(effects.BlockPoints(5, element=Element.ice))
         
 
 class Concentration(BasicAction):
     name = 'concentration'
     title = translate('cards', 'Concentration')
     color = Mana.green
+    type = EffectType.special
     
     def basicEffect(self, match, player):
         color = dialogs.chooseManaColor(fromList=[Mana.blue, Mana.white, Mana.red])
@@ -136,6 +143,7 @@ class Crystallize(BasicAction):
     name = 'crystallize'
     title = translate('cards', 'Crystallize')
     color = Mana.blue
+    type = EffectType.special
     
     def basicEffect(self, match, player):
         color = dialogs.chooseManaColor(match, available=True)
@@ -185,6 +193,7 @@ class ManaDraw(BasicAction):
     name = 'mana_draw'
     title = translate('cards', 'Mana Draw')
     color = Mana.white
+    type = EffectType.special
     
     def basicEffect(self, match, player):
         match.source.changeLimit(1)
@@ -293,6 +302,7 @@ class Tranquility(BasicAction):
     name = 'tranquility'
     title = translate('cards', 'Tranquility')
     color = Mana.green
+    type = EffectType.healing
         
     def basicEffect(self, match, player):
         effect = effects.HealPoints(1)
@@ -306,13 +316,14 @@ class Tranquility(BasicAction):
         index = dialogs.chooseIndex([effect, translate('cards', "Draw two cards")])
         if index == 0:
             match.effects.add(effects.HealPoints(2))
-        else: player.drawCards(1)
+        else: player.drawCards(2)
         
         
 class WillFocus(BasicAction):
     name = 'will_focus'
     title = translate('cards', 'Will Focus')
     color = Mana.green
+    type = EffectType.special
      
     def basicEffect(self, match, player):
         color = dialogs.chooseManaColor()

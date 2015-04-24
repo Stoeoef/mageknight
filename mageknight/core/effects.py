@@ -45,7 +45,7 @@ class Effect:
         return other is self # should be implemented in subclasses
     
     def __str__(self):
-        return type(self).__name__ # should be implemented in subclasses
+        return self.title
 
 
 class UniqueEffect(Effect):
@@ -113,44 +113,44 @@ class InfluencePoints(PointsEffect):
 
     
 class BlockPoints(PointsEffect):
-    def __init__(self, points, type=BlockType.physical):
+    def __init__(self, points, element=Element.physical):
         super().__init__(points)
-        assert isinstance(type, BlockType)
-        self.type = type
+        assert isinstance(element, Element)
+        self.element = element
     
     def _changed(self, amount):
-        return super()._changed(amount, type=self.type)
+        return super()._changed(amount, element=self.element)
     
     def _sameType(self, other):
-        return type(other) is type(self) and other.type == self.type
+        return type(other) is type(self) and other.element == self.element
     
     @property
     def title(self):
-        if self.type == BlockType.physical:
+        if self.element == Element.physical:
             return 'Block'
-        else: return '{} Block'.format(self.type.title)
+        else: return '{} Block'.format(self.element.title)
 
 
 class AttackPoints(PointsEffect):
-    def __init__(self, points, type=AttackType.physical, range=AttackRange.normal):
+    def __init__(self, points, element=Element.physical, range=AttackRange.normal):
         super().__init__(points)
-        assert isinstance(type, AttackType)
-        self.type = type
+        assert isinstance(element, Element)
+        self.element = element
         self.range = range
         
     def _changed(self, amount):
-        return super()._changed(amount, type=self.type, range=self.range)
+        return super()._changed(amount, element=self.element, range=self.range)
     
     def _sameType(self, other):
-        return type(other) is type(self) and other.type == self.type and other.range == self.range
+        return type(other) is type(self) and other.element == self.element and other.range == self.range
     
     @property
     def title(self):
         if self.range != AttackRange.normal:
             title = self.range.title + ' '
         else: title = ''
-        if self.type != AttackType.physical:
-            title += self.type.title + ' '
+        if self.element != Element.physical:
+            title += self.element.title + ' '
         title += 'Attack'
         return title
     
@@ -202,6 +202,19 @@ class ManaTokens(Effect):
     
     def __getitem__(self, color):
         return self._tokens[color]
+
+
+class LosesResistance(Effect):
+    title = translate("Effects", "Loses resistances")
+
+
+class ArmorReduction(Effect):
+    def __init__(self, amount):
+        self.amount = amount
+        
+    @property
+    def title(self):
+        return translate("Effects", "Armor -{}".format(self.amount))
 
 
 class Concentration(Effect):

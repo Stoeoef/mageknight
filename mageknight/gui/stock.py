@@ -24,6 +24,8 @@ import math
 
 from PyQt5 import QtCore, QtWidgets
 
+from mageknight import utils
+
 
 class Stock(QtWidgets.QGraphicsObject):
     """This item arranges its child items in a nice layout. All child items must be of size *childSize*
@@ -31,7 +33,7 @@ class Stock(QtWidgets.QGraphicsObject):
     animations are used to move all items to their new position.
     Warning: For these animations to work, all items must be subclasses of QGraphicsObject.
     
-    Before a stock displays items you must either use setRowCount or setColumnCount.
+    By default, a Stock arranges all items in a single row.
     """
     PADDING = 10 # between items and borders
     SPACING = 10 # between items
@@ -42,6 +44,7 @@ class Stock(QtWidgets.QGraphicsObject):
         self._anims = QtCore.QParallelAnimationGroup(self)
         self._cols = None
         self._rows = None
+        self.setRowCount(1)
         
     def setColumnCount(self, cols):
         """Set the number of columns that the grid layout should use. The layout will always reserve enough
@@ -72,6 +75,7 @@ class Stock(QtWidgets.QGraphicsObject):
     def insertItem(self, index, item):
         """Insert an item at the specified index (in self.items()) into the stock."""
         assert isinstance(item, QtWidgets.QGraphicsObject)
+        self.prepareGeometryChange()
         # Docs: Should not add an item that belongs to the scene
         if item.scene() is not None:
             pos = self.mapFromItem(item, QtCore.QPointF(0, 0))
@@ -86,9 +90,20 @@ class Stock(QtWidgets.QGraphicsObject):
         
     def removeItem(self, item):
         """Remove the given item from the stock."""
+        self.prepareGeometryChange()
         self.scene().removeItem(item)
         item.setParentItem(None)
         self.layout()
+        
+    def removeItemAt(self, index):
+        """Remove the item with the given index."""
+        self.removeItem(self.items()[index])
+        
+    def clear(self):
+        self.prepareGeometryChange()
+        for item in self.items():
+            self.scene().removeItem(item)
+            item.setParentItem(None)
     
     def boundingRect(self):
         if self._cols is not None:
@@ -141,4 +156,84 @@ class Stock(QtWidgets.QGraphicsObject):
                 self._moveItemToPos(item, x, y)
                 y += self.SPACING + self.objectSize.height()
                 row += 1
+                
+    def sync(self, itemClass, objects, end=None):
+        """Sync this stock's items with a list of objects (the second argument).
+        This method will assume that each item has an
+        attribute 'object' holding the object for an item. For the other direction, *itemClass* will be
+        used to construct items from objects. The constructor of *itemClass* should take two arguments:
+        the object and this stock's object size.
+        The optional argument *end* can be used to restrict the syncing to self.items()[:end], i.e. items
+        starting with the index *end* will not be touched.
+        """
+        # because added/removed items will trigger animations,
+        # we cannot simply clear the stock and re-add everything
+        if end is None:
+            end = len(self.items())
+        for item in self.items()[:end]: # in particular this creates a copy
+            if item.object not in objects:
+                self.removeItem(item)
+                end -= 1
+            else: item.update() # repaint items that were not added/removed
+        for i, object in enumerate(objects):
+            if i >= end or object != self.items()[i].object:
+                item = itemClass(object, self.objectSize)
+                self.insertItem(i, item)
+                end += 1
+
+
+class Row(Stock): # TODO: Create an abstract super class and make Row and Stock siblings
+    def __init__(self):
+        super().__init__(None)
         
+    def boundingRect(self):
+        width = height = 0
+        for item in self.childItems():
+            rect = item.boundingRect()
+            width += rect.width()
+            height = max(rect.height(), height)
+        if len(self.childItems()) > 0:
+            width += self.SPACING * (len(self.childItems())-1)
+        width += 2 * self.PADDING
+        height += 2 * self.PADDING
+        print(width, height)
+        return QtCore.QRectF(0, 0, width, height)
+    
+    def layout(self):
+        self._anims.stop()
+        self._anims.clear()
+        x = self.PADDING
+        items = self.childItems()
+        height = max(item.boundingRect().height() for item in items)
+        for item in items:
+            rect = item.boundingRect()
+            y = self.PADDING + (height-rect.height()) / 2
+            self._moveItemToPos(item, x, y)
+            x += self.SPACING + rect.width()
+       
+    
+    
+class GraphicsPixmapObject(QtWidgets.QGraphicsObject):
+    """Like QGraphicsPixmapItem, but a subclass of QGraphicsObject as required by stock.Stock.
+    As an additional feature, this item draws a version of *pixmap* scaled to *size* (if given) and shows
+    the original pixmap as tooltip.
+    """
+    def __init__(self, pixmap, size=None):
+        super().__init__()
+        self.pixmap = pixmap
+        if size is not None:
+            self._scaled = utils.scalePixmap(pixmap, size)
+        else: self._scaled = self.pixmap
+        self.setToolTip(utils.html(pixmap))
+    
+    def size(self):
+        return self._scaled.size()
+    
+    def boundingRect(self):
+        return QtCore.QRectF(0, 0, self._scaled.width(), self._scaled.height())
+    
+    def paint(self, painter, option, widget):
+        painter.drawPixmap(0, 0, self._scaled)
+        
+    def scaleFactor(self):
+        return min(self._scaled.width() / self.pixmap.width(), self._scaled.height() / self.pixmap.height())

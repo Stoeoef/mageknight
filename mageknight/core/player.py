@@ -24,7 +24,8 @@ from . import baseplayer, cards
 
 class Player(baseplayer.Player):                                
     def initDeedDeck(self):
-        names = ['improvisation', 'threaten', 'rage', 'crystallize', 'march', 'march', 'mana_draw', 'tranquility', ] #TODO: 
+        # TODO: remove debugging stuff
+        names = ['improvisation', 'threaten', 'march', 'crystallize', 'battle_versatility', 'rage', 'mana_draw', 'tranquility', ]
         self.drawPile = [cards.get(name) for name in names]
         self.cardCountChanged.emit()
         
@@ -47,4 +48,10 @@ class Player(baseplayer.Player):
             super().addCrystal(color)
         else: self.addToken(color)
         
+    def knockOut(self):
+        """Discard all non-wound cards from the hand."""
+        for card in list(self.handCards):
+            if not card.isWound():
+                self.discard(card)
+    
     

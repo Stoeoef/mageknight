@@ -70,7 +70,19 @@ class LocalMatchClient(Adapter):
     @action
     def playSideways(self, card, effectIndex): pass
     @action
-    def movePlayer(self, coords): pass 
+    def movePlayer(self, coords): pass
+    @action
+    def activateUnit(self, unit, action): pass 
+    @action
+    def recruitUnit(self, unit): pass
+    @action
+    def setEnemySelected(self, enemy, selected): pass
+    @action
+    def combatNext(self): pass
+    @action
+    def combatSkip(self): pass
+    @action
+    def assignDamageToUnit(self, unit): pass
 
         
 class ManaSourceAdapter(Adapter):

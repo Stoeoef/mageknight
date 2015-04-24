@@ -82,6 +82,13 @@ class Map(QtCore.QObject):
         if tile is not None:
             return tile.siteAt(coords-tileCenter(coords))
         else: return None
+    
+    def siteAtPlayer(self, player):
+        """Return the site at the coordinates of this player. Return None if the player is not on the map.
+        """
+        if player in self.persons:
+            return self.siteAt(self.persons[player])
+        else: return None
         
     def _addShieldToken(self, player, coords):
         """Add a shield token of the given player to the specified hex. The hex must be empty."""

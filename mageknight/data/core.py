@@ -22,7 +22,8 @@
 
 import enum, random
 
-__all__ = ['InvalidAction', 'CancelAction', 'State', 'RoundType', 'Round', 'Mana']
+__all__ = ['InvalidAction', 'CancelAction', 'State', 'RoundType', 'Round', 'Mana',
+           'CombatState', 'AttackRange', 'Element', 'EffectType']
 
 
 class InvalidAction(Exception):
@@ -32,10 +33,12 @@ class InvalidAction(Exception):
         
     def __str__(self):
         return "Invalid action: "+self.message
-    
+
+
 class CancelAction(Exception):
     pass
-    
+
+
 class State(enum.Enum):
     # TODO: more states are necessary for e.g. pillaging, resting, level-up...
     init = 1
@@ -77,3 +80,61 @@ class Mana(enum.Enum):
     @staticmethod
     def basicColors():
         return (Mana.red, Mana.blue, Mana.green, Mana.white)
+
+
+class CombatState(enum.Enum):
+    """Phase of a combat."""  
+    noCombat = 0
+    rangeAttack = 1
+    block = 2
+    assignDamage = 3
+    attack = 4
+    end = 5
+        
+
+class AttackRange(enum.Enum):
+    """Range of a player attack."""
+    normal = 1
+    range = 2
+    siege = 3
+    
+    @property
+    def title(self):
+        if self is AttackRange.normal:
+            return 'Normal'
+        elif self is AttackRange.range:
+            return 'Ranged'
+        else: return 'Siege'
+
+
+class Element(enum.Enum):
+    """The type of a block."""
+    physical = 1
+    fire = 2
+    ice = 3
+    coldFire = 4
+    summoner = 5
+    
+    @property
+    def title(self):
+        if self is Element.physical:
+            return 'Physical'
+        elif self is Element.fire:
+            return 'Fire'
+        elif self is Element.ice:
+            return 'Ice'
+        elif self is Element.coldFire:
+            return 'Cold Fire'
+        else: return 'Summoner'
+        
+        
+class EffectType(enum.Enum):
+    """Each card,unit action, skill etc. has a type which determines when it can be played."""
+    default = 0
+    movement = 1
+    influence = 2
+    combat = 3
+    healing = 4
+    special = 5
+    
+    

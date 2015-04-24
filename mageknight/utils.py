@@ -52,3 +52,9 @@ def scalePixmap(pixmap, sizeOrX, y=None):
         size = sizeOrX
     else: size = QtCore.QSize(sizeOrX, y)
     return pixmap.scaled(size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+
+
+def color(str):
+    """Return a QColor from a hex string like "80ce9a"."""
+    hexes = [int(s, base=16) for s in (str[0:2], str[2:4], str[4:6])]
+    return QtGui.QColor(*hexes)

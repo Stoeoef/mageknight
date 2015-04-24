@@ -92,6 +92,9 @@ class EffectList(QtCore.QObject):
                 return e
         else: return None
         
+    def findEffects(self, effectType):
+        return [e for e in self._list if isinstance(e, effectType)]
+        
     @property
     def movePoints(self):
         return sum(e.points for e in self._list if isinstance(e, MovePoints))

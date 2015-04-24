@@ -20,7 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from PyQt5 import QtWidgets
+from PyQt5 import QtCore, QtWidgets
 
 mainWindow = None # mainWindow instance
 
@@ -31,6 +31,9 @@ class MainWindow(QtWidgets.QWidget):
         self.setWindowTitle(self.tr("Mage Knight"))
         global mainWindow
         mainWindow = self
+        
+        self.viewActions = [ToggleViewAction(self, view, title) for view, title in self.availableViews()]
+        self._views = {}
         
         from mageknight import core, client
         from mageknight.data import Hero
@@ -65,12 +68,22 @@ class MainWindow(QtWidgets.QWidget):
         
         self.resize(1000, 700)
         
-        self._views = {}
+        
+        # TODO: remove debugging stuff
+        from mageknight.core import units
+        self.match.currentPlayer.addUnit(units.get('guardian_golems'))
+            
+        QtCore.QTimer.singleShot(0, lambda: self.showView('combat'))
+        from mageknight.data import enemies
+        self.match.combat.begin([enemies.get('prowlers'), enemies.get('medusa')])
+        
         
     def availableViews(self):
         """Return a list of (view id, view title)-tuples for all available views. Views are popup windows
         offer additional game information (e.g. the fame board)."""
         return [
+            ('combat', self.tr("Combat")),
+            ('shop', self.tr("Shop")),
             ('fame', self.tr("Fame board")),
             ('cards', self.tr("Cards"))
         ]
@@ -81,7 +94,13 @@ class MainWindow(QtWidgets.QWidget):
             - fame: The fame/reputation board
         """
         if viewId not in self._views:
-            if viewId == 'fame':
+            if viewId == 'combat':
+                from mageknight.gui import combatview
+                self._views[viewId] = combatview.CombatView(self, self.client)
+            elif viewId == 'shop':
+                from mageknight.gui import shop
+                self._views[viewId] = shop.ShopView(self, self.client)
+            elif viewId == 'fame':
                 from mageknight.gui import fameview
                 self._views[viewId] = fameview.FameView(self, self.client)
             elif viewId == 'cards':
@@ -90,3 +109,38 @@ class MainWindow(QtWidgets.QWidget):
             else:
                 raise ValueError("Invalid view id: '{}'".format(viewId))
         return self._views[viewId]
+
+    def showView(self, viewId):
+        self.setViewVisible(viewId, True)
+        
+    def setViewVisible(self, viewId, visible):
+        for action in self.viewActions:
+            if action.viewId == viewId:
+                action.setChecked(visible)
+        
+        
+class ToggleViewAction(QtWidgets.QAction):
+    """An action that is used to show/hide a view (see MainWindow.getView)."""
+    def __init__(self, parent, viewId, title):
+        super().__init__(parent)
+        self.viewId = viewId
+        self.setText(title)
+        self.setCheckable(True)
+        self.toggled.connect(self._triggered)
+        self._connected = False
+        
+    def _triggered(self, checked):
+        from mageknight.gui import mainwindow
+        view = mainwindow.mainWindow.getView(self.viewId)  # @UndefinedVariable
+        if checked:
+            if not self._connected:
+                view.installEventFilter(self)
+                self._connected = True
+            view.show()
+        else:
+            view.hide()
+            
+    def eventFilter(self, object, event):
+        if event.type() == QtCore.QEvent.Close:
+            self.setChecked(False)
+        return False # do not filter the event
