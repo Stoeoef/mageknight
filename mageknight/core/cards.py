@@ -112,8 +112,25 @@ class ColdToughness(BasicAction):
         match.effects.add(effect)
     
     def strongEffect(self, match, player):
-        # TODO: increase block depending on current enemy
-        match.effects.add(effects.BlockPoints(5, element=Element.ice))
+        assert len(match.combat.selectedEnemies()) == 1
+        enemy = match.combat.selectedEnemies()[0] # TODO: redirect for summoners?
+        
+        points = 5
+        for ability in 'fortified', 'brutal', 'swift', 'paralyze', 'poison':
+            if getattr(enemy, ability):
+                points += 1
+                
+        if enemy.attack.element in [Element.ice, Element.fire]:
+            points += 1
+        elif enemy.attack == Element.coldFire:
+            points += 2
+            
+        # points += len(enemy.resistances) does not work correctly if enemy has cold fire resistance
+        for element in [Element.physical, Element.ice, Element.fire]:
+            if element in enemy.resistances:
+                points += 1
+                
+        match.effects.add(effects.BlockPoints(points, element=Element.ice))
         
 
 class Concentration(BasicAction):
