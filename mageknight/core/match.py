@@ -25,7 +25,8 @@ from PyQt5 import QtCore
 
 from mageknight import stack, hexcoords
 from mageknight.data import *  # @UnusedWildImport
-from mageknight.core import source, player, map, effectlist, effects, cards, units, shop, combat # @Reimport
+from mageknight.core import effects, cards, units
+from mageknight.core import source, player, map, effectlist, shop, combat, actions  # @Reimport
 from mageknight.gui import dialogs
 from .decorators import action
 
@@ -50,6 +51,7 @@ class Match(QtCore.QObject):
         self.shop.refreshUnits()
         self.resetTerrainCosts()
         self.combat = combat.Combat(self)
+        self.actions = actions.ActionList(self)
         
         for player in self.players:
             player.match = self
@@ -62,8 +64,8 @@ class Match(QtCore.QObject):
         print("SET STATE", state)
         assert isinstance(state, State)
         if state != self.state:
-            self.match.stack.push(stack.Call(self._setState, state),
-                                  stack.Call(self._setState, self.state))
+            self.stack.push(stack.Call(self._setState, state),
+                            stack.Call(self._setState, self.state))
     
     def _setState(self, state):
         if state != self.state:
@@ -261,8 +263,22 @@ class Match(QtCore.QObject):
         terrain = self.map.terrainAt(coords)
         if terrain is None or not self.isTerrainPassable(terrain):
             raise InvalidAction("This field is not passable")
+        site = self.map.siteAt(coords) # returns only active sites
+        if site is not None:
+            if site.site in [Site.maraudingOrcs, Site.draconum]:
+                raise InvalidAction("Cannot enter a field occupied by a marauding enemy.")
+        
         self.payMovePoints(self.terrainCosts[terrain])
         self.map.movePerson(player, coords)
+        oldEnemies = set(self.map.getAdjacentMaraudingEnemies(pos))
+        newEnemies = set(self.map.getAdjacentMaraudingEnemies(coords))
+        if len(oldEnemies.intersection(newEnemies)) > 0:
+            enemies = []
+            for site in oldEnemies.intersection(newEnemies):
+                enemies.extend(site.enemies)
+            self.combat.begin(enemies)
+        elif any(site.site in [Site.maraudingOrcs, Site.draconum] for site in self.map.adjacentSites(coords)):
+            self.actions.add('marauding', self.tr("Fight marauding enemies")) 
         
     @action
     def activateUnit(self, player, unit, action):
@@ -306,3 +322,8 @@ class Match(QtCore.QObject):
     @action(State.assignDamage)
     def assignDamageToUnit(self, player, unit):
         self.combat.assignDamageToUnit(unit)
+        
+    @action
+    def activateAction(self, player, actionId):
+        print(actionId)
+        

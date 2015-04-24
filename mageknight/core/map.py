@@ -29,7 +29,7 @@ class SiteOnMap:
     def __init__(self, site, coords):
         self.site = site
         self.coords = coords
-        self.active = True
+        self.isActive = True
         self.enemies = []
         self.owner = None
         
@@ -55,3 +55,8 @@ class Map(basemap.Map):
                 site.enemies.append(enemy)
             
             self.addSite(site)
+
+    def getAdjacentMaraudingEnemies(self, coords):
+        return [site for site in self.adjacentSites(coords)
+                if site.site in [Site.maraudingOrcs, Site.draconum]]
+        

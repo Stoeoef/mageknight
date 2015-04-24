@@ -83,6 +83,8 @@ class LocalMatchClient(Adapter):
     def combatSkip(self): pass
     @action
     def assignDamageToUnit(self, unit): pass
+    @action
+    def activateAction(self, actionId): pass
 
         
 class ManaSourceAdapter(Adapter):

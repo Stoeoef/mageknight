@@ -74,10 +74,10 @@ class MapModel(QtWidgets.QGraphicsScene):
         if coords not in self._siteItems:
             item = SiteItem(site)
             item.setPos(coords.center())
-            self._siteItems[item] = item
+            self._siteItems[coords] = item
             self.addItem(item)
         else:
-            self._siteItems[item]._update()
+            self._siteItems[coords]._update()
             self._shiftItemsAt(self.coords)
     
     def _shiftItemsAt(self, coords):
@@ -151,17 +151,19 @@ class SiteItem(QtWidgets.QGraphicsItem):
     def __init__(self, site):
         super().__init__()
         self.site = site
-        self._update()
         self._enemyItems = []
+        self._update()
         self._shieldItem = None
         
     def _update(self):
         self.prepareGeometryChange()
         for item in self.childItems():
             self.scene().removeItem(item)
+            self._enemyItems.clear()
             
         for enemy in self.site.enemies:
             item = EnemyItem(enemy)
+            self._enemyItems.append(item)
             item.setParentItem(self)
             
         if self.site.owner is not None:
@@ -176,6 +178,9 @@ class SiteItem(QtWidgets.QGraphicsItem):
     
     def paint(self, painter, option, widget=None):
         pass
+
+    def __repr__(self):
+        return "<SiteItem {} at {}>".format(self.site.site, self.site.coords)
 
     
 class EnemyItem(QtWidgets.QGraphicsPixmapItem):

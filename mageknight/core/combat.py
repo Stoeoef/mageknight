@@ -100,7 +100,7 @@ class Combat(basecombat.BaseCombat):
         
         # Skip states under certain circumstances
         if not any(enemy.isAlive for enemy in self.enemies):
-            state = State.end
+            state = State.combatEnd
         if state == State.block and not any(enemy.isAttacking for enemy in self.enemies):
             state = State.attack
         if state == State.assignDamage and \
@@ -128,7 +128,7 @@ class Combat(basecombat.BaseCombat):
         return True
         
     def setEnemySelected(self, enemy, select):
-        if self.match.state in [State.noCombat, State.end]:
+        if not self.match.state.inCombat:
             raise InvalidAction("Cannot select/deselect an enemy currently.")
         if self.effectsPlayed:
             raise InvalidAction("Cannot change enemy selection after playing effects.")
@@ -166,7 +166,7 @@ class Combat(basecombat.BaseCombat):
         elif state == State.block:
             self.setState(State.assignDamage)
         elif state == State.attack:
-            self.setState(State.end)
+            self.setState(State.combatEnd)
         else:
             raise InvalidAction("Cannot skip to next combat state now.")
         

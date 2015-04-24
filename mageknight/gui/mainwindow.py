@@ -49,16 +49,23 @@ class MainWindow(QtWidgets.QWidget):
         leftLayout.setContentsMargins(0,0,0,0)
         layout.addLayout(leftLayout, 1)
         
-        from mageknight.gui import topbar, mapview, playerarea, playerstatus, effectlist
+        from mageknight.gui import topbar, mapview, playerarea, playerstatus, effectlist, actionlist
         self.topBar = topbar.TopBar(self.client)
         leftLayout.addWidget(self.topBar)
         
-        mapAndEffectsLayout = QtWidgets.QHBoxLayout()
+        centerLayout = QtWidgets.QHBoxLayout()
+        leftLayout.addLayout(centerLayout, 1)
         self.mapView = mapview.MapView(self, self.client)
-        mapAndEffectsLayout.addWidget(self.mapView, 1)
+        centerLayout.addWidget(self.mapView, 1)
+        
+        rightLayout = QtWidgets.QVBoxLayout()
+        centerLayout.addLayout(rightLayout)
+        
+        self.actionList = actionlist.ActionList(self.client)
+        rightLayout.addWidget(self.actionList)
+        
         self.effectList = effectlist.EffectList(self.client)
-        mapAndEffectsLayout.addWidget(self.effectList)
-        leftLayout.addLayout(mapAndEffectsLayout, 1)
+        rightLayout.addWidget(self.effectList)
         
         self.playerArea = playerarea.PlayerArea(self.client, players[0])
         leftLayout.addWidget(self.playerArea)

@@ -77,7 +77,17 @@ class Map(QtCore.QObject):
     def siteAtPlayer(self, player):
         """Return the site at the coordinates of this player. Return None if the player is not on the map.
         """
-        return self.sites.get(self.persons[player])
+        return self.siteAt(self.persons[player])
+        
+    
+    def siteAt(self, coords):
+        if coords in self.sites and self.sites[coords].isActive:
+            return self.sites[coords]
+        else: return None
+        
+    def adjacentSites(self, coords):
+        sites = [self.siteAt(c) for c in coords.neighbors()]
+        return [s for s in sites if s is not None]
         
     def addSite(self, site):
         # note: this is only executed when new tiles are revealed => no undo/redo necessary
