@@ -43,6 +43,7 @@ class Map(QtCore.QObject):
     tileAdded = QtCore.pyqtSignal(HexCoords)
     siteChanged = QtCore.pyqtSignal(HexCoords)
     personChanged = QtCore.pyqtSignal(player.Player)
+    terrainCostsChanged = QtCore.pyqtSignal()
     
     def __init__(self, match, shape):
         super().__init__()
@@ -52,6 +53,7 @@ class Map(QtCore.QObject):
         self.tiles = {}
         self.sites = {}
         self.persons = {}
+        self.terrainCosts = {}
 
     def addTile(self, tile, coords):
         """Add a tile at the given hex coordinates. *coords* must point to an empty center hex
@@ -129,6 +131,19 @@ class Map(QtCore.QObject):
     def _addEnemy(self, site, enemy):
         site.enemies.append(enemy)
         self.siteChanged.emit(site.coords)
+        
+    def setTerrainCost(self, terrain, cost):
+        """Set the movement cost of the given terrain to *cost*. If *cost* is None, the terrain will not
+        be passable."""
+        self.match.stack.push(stack.Call(self._setTerrainCost, terrain, cost),
+                              stack.Call(self._setTerrainCost, terrain, self.terrainCosts.get(terrain)))
+        
+    def _setTerrainCost(self, terrain, cost):
+        if cost is not None:
+            self.terrainCosts[terrain] = cost
+        elif terrain in self.terrainCosts:
+            del self.terrainCosts[terrain]
+        self.terrainCostsChanged.emit()
         
         
 def isTileCenter(coords):

@@ -40,6 +40,7 @@ class SiteOnMap:
 class Map(basemap.Map):
     def __init__(self, match, shape):
         super().__init__(match, shape)
+        self.resetTerrainCosts()
         
         self.addTile(Tile('A'), hexcoords.HexCoords(0,0))
         self.addTile(Tile('1'), hexcoords.HexCoords(1,3))
@@ -55,6 +56,29 @@ class Map(basemap.Map):
                 site.enemies.append(enemy)
             
             self.addSite(site)
+    
+    def resetTerrainCosts(self):
+        """Reset cost of all terrains to their default values."""
+        self.terrainCosts = {
+            Terrain.plains: 2,
+            Terrain.hills: 3,
+            Terrain.forest: 3 if self.match.round.type == RoundType.day else 5,
+            Terrain.wasteland: 4,
+            Terrain.desert: 5 if self.match.round.type == RoundType.day else 3,
+            Terrain.swamp: 5,
+            Terrain.city: 2,
+        }
+        
+    def isTerrainPassable(self, terrain):
+        """Return whether the given terrain is currently passable for the current player. This might change
+        as an effect of e.g. spells."""
+        assert isinstance(terrain, Terrain)
+        return terrain in self.terrainCosts
+        
+    def reduceTerrainCost(self, terrain, amount, minimum):
+        """Reduce cost of *terrain* by *amount*, to a minimum of *minimum*."""
+        if terrain in self.terrainCosts: # should always be the case
+            self.setTerrainCost(terrain, max(minimum, self.terrainCosts[terrain] - amount))
 
     def getAdjacentMaraudingEnemies(self, coords):
         return [site for site in self.adjacentSites(coords)

@@ -30,20 +30,20 @@ class TerrainCostsView(QtWidgets.QDialog):
     def __init__(self, parent, match):
         super().__init__(parent)
         self.setWindowTitle(self.tr("Terrain costs"))
-        self.match = match
+        self.map = map
         
         layout = QtWidgets.QVBoxLayout(self)
         self.label = QtWidgets.QLabel()
         layout.addWidget(self.label)
-        self.match.terrainCostsChanged.connect(self._update)
+        self.map.terrainCostsChanged.connect(self._update)
         self._update()
 
     def _update(self):
         lines = []
         for terrain in Terrain:
-            if self.match.isTerrainPassable(terrain):
+            if self.map.isTerrainPassable(terrain):
                 # TODO: display translated terrain titles
-                lines.append("{}: {}".format(terrain.name, self.match.terrainCosts[terrain]))
+                lines.append("{}: {}".format(terrain.name, self.map.terrainCosts[terrain]))
             
         self.label.setText('<br />'.join(lines))
         

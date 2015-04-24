@@ -35,7 +35,6 @@ class Match(QtCore.QObject):
     """This is the central object managing a match."""
     stateChanged = QtCore.pyqtSignal(State)
     roundChanged = QtCore.pyqtSignal(Round)
-    terrainCostsChanged = QtCore.pyqtSignal()
     
     def __init__(self, players):
         super().__init__()
@@ -49,7 +48,6 @@ class Match(QtCore.QObject):
         self.effects = effectlist.EffectList(self)
         self.shop = shop.Shop(self)
         self.shop.refreshUnits()
-        self.resetTerrainCosts()
         self.combat = combat.Combat(self)
         self.actions = actions.ActionList(self)
         
@@ -103,41 +101,7 @@ class Match(QtCore.QObject):
     def nightRulesApply(self):
         """Return whether night rules hold currently. This is true during nights, in dungeons, etc."""
         return self.round.type == RoundType.night
-        
-    def isTerrainPassable(self, terrain):
-        """Return whether the given terrain is currently passable for the current player. This might change
-        as an effect of e.g. spells."""
-        assert isinstance(terrain, Terrain)
-        return terrain in self.terrainCosts
-    
-    def resetTerrainCosts(self):
-        self.terrainCosts = {
-            Terrain.plains: 2,
-            Terrain.hills: 3,
-            Terrain.forest: 3 if self.round.type == RoundType.day else 5,
-            Terrain.wasteland: 4,
-            Terrain.desert: 5 if self.round.type == RoundType.day else 3,
-            Terrain.swamp: 5,
-            Terrain.city: 2,
-        }
-        
-    def reduceTerrainCost(self, terrain, amount, minimum):
-        if terrain in self.terrainCosts: # should always be the case
-            self.setTerrainCost(terrain, max(minimum, self.terrainCosts[terrain] - amount))
-        
-    def setTerrainCost(self, terrain, cost):
-        """Set the movement cost of the given terrain to *cost*. If *cost* is None, the terrain will not
-        be passable."""
-        self.stack.push(stack.Call(self._setTerrainCost, terrain, cost),
-                        stack.Call(self._setTerrainCost, terrain, self.terrainCosts.get(terrain)))
-        
-    def _setTerrainCost(self, terrain, cost):
-        if cost is not None:
-            self.terrainCosts[terrain] = cost
-        elif terrain in self.terrainCosts:
-            del self.terrainCosts[terrain]
-        self.terrainCostsChanged.emit()
-    
+            
     def _manaOptions(self, player, color):
         colors = [color] # during day we might add Mana.gold, skills might add even more
         
@@ -261,14 +225,14 @@ class Match(QtCore.QObject):
         if not coords.isNeighborOf(pos):
             raise InvalidAction("Can only move to adjacent fields.")
         terrain = self.map.terrainAt(coords)
-        if terrain is None or not self.isTerrainPassable(terrain):
+        if terrain is None or not self.map.isTerrainPassable(terrain):
             raise InvalidAction("This field is not passable")
         site = self.map.siteAt(coords) # returns only active sites
         if site is not None:
             if site.type in [Site.maraudingOrcs, Site.draconum]:
                 raise InvalidAction("Cannot enter a field occupied by a marauding enemy.")
         
-        self.payMovePoints(self.terrainCosts[terrain])
+        self.payMovePoints(self.map.terrainCosts[terrain])
         self.map.movePerson(player, coords)
         oldEnemies = set(self.map.getAdjacentMaraudingEnemies(pos))
         newEnemies = set(self.map.getAdjacentMaraudingEnemies(coords))

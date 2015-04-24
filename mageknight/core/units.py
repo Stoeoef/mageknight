@@ -114,7 +114,7 @@ class Foresters(RegularUnit):
     def action1(self, match, player):
         match.effects.add(effects.MovePoints(2))
         for terrain in Terrain.forest, Terrain.hills, Terrain.swamp:
-            match.reduceTerrainCost(terrain, 1, 0)
+            match.map.reduceTerrainCost(terrain, 1, 0)
         
     def action2(self, match, player):
         match.effects.add(effects.BlockPoints(3))
