@@ -73,9 +73,9 @@ class MainWindow(QtWidgets.QWidget):
         from mageknight.core import units
         self.match.currentPlayer.addUnit(units.get('guardian_golems'))
             
-        QtCore.QTimer.singleShot(0, lambda: self.showView('combat'))
-        from mageknight.data import enemies
-        self.match.combat.begin([enemies.get('prowlers'), enemies.get('medusa')])
+        #QtCore.QTimer.singleShot(0, lambda: self.showView('combat'))
+        #from mageknight.data import enemies
+        #self.match.combat.begin([enemies.get('prowlers'), enemies.get('medusa')])
         
         
     def availableViews(self):

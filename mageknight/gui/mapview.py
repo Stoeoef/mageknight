@@ -63,32 +63,17 @@ class MapModel(QtWidgets.QGraphicsScene):
         self.map.shieldTokenAdded.connect(self._shieldTokenAdded)
         self.map.enemiesChanged.connect(self._enemiesChanged)
         self.map.personChanged.connect(self._personChanged)
-        self._addAllTiles()
-    
-    def _addAllTiles(self):
-        """Debug method: Create a map containing all tiles."""
-        self.map.addTile(Tile('A'), hexcoords.HexCoords(0,0))
-        self.map.addTile(Tile('1'), hexcoords.HexCoords(1,3))
-        self.map.addTile(Tile('2'), hexcoords.HexCoords(3,2))
-        self.map.addTile(Tile('3'), hexcoords.HexCoords(2,6))
-        self.map.addTile(Tile('4'), hexcoords.HexCoords(4,5))
-        self.map.addTile(Tile('5'), hexcoords.HexCoords(6,4))
-        self.map.addTile(Tile('6'), hexcoords.HexCoords(3,9))
-        self.map.addTile(Tile('7'), hexcoords.HexCoords(5,8))
-        self.map.addTile(Tile('8'), hexcoords.HexCoords(7,7))
-        self.map.addTile(Tile('9'), hexcoords.HexCoords(9,6))
-        self.map.addTile(Tile('10'), hexcoords.HexCoords(4,12))
-        self.map.addTile(Tile('11'), hexcoords.HexCoords(6,11))
         
-        self.map.addTile(Tile('c1'), hexcoords.HexCoords(8,10))
-        self.map.addTile(Tile('c2'), hexcoords.HexCoords(10,9))
-        self.map.addTile(Tile('c3'), hexcoords.HexCoords(12,8))
-        self.map.addTile(Tile('c4'), hexcoords.HexCoords(5,15))
-        self.map.addTile(Tile('c5'), hexcoords.HexCoords(7,14))
-        self.map.addTile(Tile('c6'), hexcoords.HexCoords(9,13))
-        self.map.addTile(Tile('c7'), hexcoords.HexCoords(11,12))
-        self.map.addTile(Tile('c8'), hexcoords.HexCoords(13,11))
-        
+        # Initialize
+        for coords in self.map.tiles.keys():
+            self._tileAdded(coords)
+        for coords in self.map.shieldTokens.keys():
+            self._shieldTokenAdded(coords)
+        for coords in self.map.enemies.keys():
+            self._enemiesChanged(coords)
+        for person in self.map.persons.keys():
+            self._personChanged(person)
+
     def _tileAdded(self, coords):
         tileItem = TileItem(self.map.tiles[coords], coords)
         self.addItem(tileItem)
@@ -172,7 +157,7 @@ class TileItem(QtWidgets.QGraphicsPixmapItem):
         
 
 class EnemyItem(QtWidgets.QGraphicsPixmapItem):
-    """A QGraphicsItem that displays an enemy token. *enemy* may also be an EnemyType in which case the 
+    """A QGraphicsItem that displays an enemy token. *enemy* may also be an EnemyCategory in which case the 
     back side of an (unknown) enemy token is displayed."""
     def __init__(self, enemy, coords):
         super().__init__()

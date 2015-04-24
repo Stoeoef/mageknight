@@ -19,6 +19,8 @@
 # You should have received a copy of the GNU General Public License
 # 
 
+import random
+
 from PyQt5 import QtCore
 
 from mageknight import stack, hexcoords
@@ -63,11 +65,11 @@ class Match(QtCore.QObject):
         
         for player in self.players:
             player.match = self
-            self.map.addPerson(player, hexcoords.HexCoords(3, 7))
+            self.map.addPerson(player, hexcoords.HexCoords(0, 0))
             player.initDeedDeck()
             player.drawCards()
         self.currentPlayer = self.players[0]
-        
+                
     def revealNewInformation(self):
         """Call this whenever new information is revealed. It will clear the undo stack."""
         if self.stack.isComposing():
@@ -174,6 +176,12 @@ class Match(QtCore.QObject):
         if cost > 0:
             self.effects.remove(effects.InfluencePoints(cost))
 
+    def chooseEnemy(self, category):
+        enemies = []
+        for enemy in category.all():
+            enemies.extend([enemy] * enemy.count)
+        return random.choice(enemies)
+        
     @action
     def playCard(self, player, card, effectIndex=0):
         """Play the given card. For cards with several actions, *effectIndex* determines which action
@@ -270,6 +278,7 @@ class Match(QtCore.QObject):
     @action
     def assignDamageToUnit(self, player, unit):
         self.combat.assignDamageToUnit(unit)
-        
+    
+    
         
         

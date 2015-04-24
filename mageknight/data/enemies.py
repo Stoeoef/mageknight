@@ -25,10 +25,10 @@ import enum
 from mageknight import utils
 from .core import Element
 
-__all__ = ['EnemyType', 'Attack', 'Enemy']
+__all__ = ['EnemyCategory', 'Attack', 'Enemy']
 
 
-class EnemyType(enum.Enum):
+class EnemyCategory(enum.Enum):
     """A type (i.e. color) of an enemy token."""
     maraudingOrcs = 1
     keep = 2
@@ -40,79 +40,83 @@ class EnemyType(enum.Enum):
     def pixmap(self):
         """Return the back side of the enemy tokens of this type."""
         return utils.getPixmap('mk/enemies/{}_back.png'.format(self.name))
+    
+    def all(self):
+        """Return all enemies from this category. The resulting list contains each enemy once."""
+        return [Enemy(self, id) for id in Enemy._enemyData[self].keys()]
    
     
 class Attack:
     """An enemy attack. It consists of an element and a value. The value is either the amount of damage
-    or -- if element == Element.summoner -- the EnemyType of the summoned enemy. *element* defaults to
+    or -- if element == Element.summoner -- the EnemyCategory of the summoned enemy. *element* defaults to
     physical or summoner attack, depending on *value*. 
     """
     def __init__(self, value, element=None):
         if element is None:
             element = Element.physical if isinstance(value, int) else Element.summoner
         assert isinstance(element, Element)
-        assert isinstance(value, int) or (element == Element.summoner and isinstance(value, EnemyType))
+        assert isinstance(value, int) or (element == Element.summoner and isinstance(value, EnemyCategory))
         self.element = element
         self.value = value
         
     
 class Enemy:
-    """An enemy token. It is initialized using its EnemyType and its id (e.g. 'altem_mages').
+    """An enemy token. It is initialized using its EnemyCategory and its id (e.g. 'altem_mages').
     It has the attributes
         type, id, name, armor, attack, fame,
         fortified, physicalResistance, iceResistance, fireResistance, swift, brutal, poison, paralyze
     (attributes in the second line are booleans).
     """
     _enemyData = {}
-    _enemyData[EnemyType.maraudingOrcs] = {
+    _enemyData[EnemyCategory.maraudingOrcs] = {
         'prowlers': ('Prowlers', 2, 3, Attack(4), 2),
         'diggers': ('Diggers', 2, 3, Attack(3), 2, 'fortified'),
         'cursed_hags': ('Cursed Hags', 2, 5, Attack(3), 3, 'poison'),
         'wolf_riders': ('Wolf Riders', 2, 4, Attack(3), 3, 'swift'),
         'ironclads': ('Ironclads', 2, 3, Attack(4), 4, 'brutal', 'physicalResistance'),
-        'orc_summoners': ('Orc Summoners', 2, 4, Attack(EnemyType.dungeon), 4),
+        'orc_summoners': ('Orc Summoners', 2, 4, Attack(EnemyCategory.dungeon), 4),
     }
-    _enemyData[EnemyType.keep] = {
+    _enemyData[EnemyCategory.keep] = {
         'crossbowmen': ('Crossbowmen', 3, 4, Attack(4), 3, 'swift'),
         'guardsmen': ('Guardsmen', 3, 7, Attack(3), 3, 'fortified'),
         'swordsmen': ('Swordsmen', 2, 5, Attack(6), 4),
         'golems': ('Golems', 2, 5, Attack(2), 4, 'physicalResistance'),
     }
-    _enemyData[EnemyType.mageTower] = {
+    _enemyData[EnemyCategory.mageTower] = {
         'monks': ('Monks', 2, 5, Attack(5), 4, 'poison'),
-        'illusionists': ('Illusionists', 2, 3, Attack(EnemyType.dungeon), 4, 'physicalResistance'),
+        'illusionists': ('Illusionists', 2, 3, Attack(EnemyCategory.dungeon), 4, 'physicalResistance'),
         'ice_mages': ('Ice Mages', 2, 6, Attack(5, Element.ice), 5, 'iceResistance'),
         'ice_golems': ('Ice Golems', 1, 4, Attack(2, Element.ice), 5, 'paralyze', 'physicalResistance', 'iceResistance'),
         'fire_mages': ('Fire Mages', 2, 5, Attack(6, Element.fire), 5, 'fireResistance'),
         'fire_golems': ('Fire Golems', 1, 4, Attack(3, Element.fire), 5, 'brutal', 'physicalResistance', 'fireResistance'),
     }
-    _enemyData[EnemyType.dungeon] = {
+    _enemyData[EnemyCategory.dungeon] = {
         'minotaur': ('Minotaur', 2, 5, Attack(5), 4, 'brutal'),
         'gargoyle': ('Gargoyle', 2, 4, Attack(5), 4, 'physicalResistance'),
         'medusa': ('Medusa', 2, 4, Attack(6), 5, 'paralyze'),
         'crypt_worm': ('Crypt Worm', 2, 6, Attack(6), 5, 'fortified'),
         'werewolf': ('Werewolf', 2, 5, Attack(7), 5, 'swift'),
     }
-    _enemyData[EnemyType.city] = {
+    _enemyData[EnemyCategory.city] = {
         'freezers': ('Freezers', 3, 7, Attack(3, Element.ice), 7, 'fireResistance', 'swift', 'paralyze'),
         'gunners': ('Gunners', 3, 6, Attack(6, Element.fire), 7, 'iceResistance', 'brutal'),
         'altem_guardsmen': ('Altem Guardsmen', 2, 7, Attack(6), 8, 'fortified', 'physicalResistance', 'iceResistance', 'fireResistance'),
         'altem_mages': ('Altem Mages', 2, 8, Attack(4, Element.coldFire), 8, 'fortified', 'physicalResistance', 'brutal', 'poison'),
     }
-    _enemyData[EnemyType.draconum] = {
+    _enemyData[EnemyCategory.draconum] = {
         'swamp_dragon': ('Swamp Dragon', 2, 9, Attack(5), 7, 'swift', 'poison'),
         'fire_dragon': ('Fire Dragon', 2, 7, Attack(9, Element.fire), 8, 'physicalResistance', 'fireResistance'),
         'ice_dragon': ('Ice Dragon', 2, 7, Attack(6, Element.ice), 8, 'physicalResistance', 'iceResistance', 'paralyze'),
         'high_dragon': ('High Dragon', 2, 9, Attack(6, Element.coldFire), 9, 'fireResistance', 'iceResistance', 'brutal'),
     }
     
-    def __init__(self, type, id):
-        assert isinstance(type, EnemyType)
+    def __init__(self, category, id):
+        assert isinstance(category, EnemyCategory)
         
         # Basic data
-        self.type = type
+        self.category = category
         self.id = id
-        data = self._enemyData[type][id]
+        data = self._enemyData[category][id]
         self.name, self.count, self.armor, self.attack, self.fame = data[:5]
         
         # Attributes
@@ -135,11 +139,11 @@ class Enemy:
     def pixmap(self, gray=False):
         """Return the front side of this enemy token. If *gray* is True, return a grayscale version."""
         dir = 'mk/enemies/' if not gray else 'mk/enemies/gray/'
-        return utils.getPixmap('{}{}_{}.png'.format(dir, self.type.name, self.id))
+        return utils.getPixmap('{}{}_{}.png'.format(dir, self.category.name, self.id))
     
 
 def get(id):
-    for type, aDict in Enemy._enemyData.items():
+    for category, aDict in Enemy._enemyData.items():
         if id in aDict:
-            return Enemy(type, id)
+            return Enemy(category, id)
     else: raise ValueError("There is no enemy with id '{}'.".format(id))

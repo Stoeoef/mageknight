@@ -157,4 +157,8 @@ class Tile:
         """Return the site at the given coords, assuming this tile sits at (0,0)."""
         sites = self._sites[self.id]
         return sites[self._fieldIndex(coords)]
+    
+    def allSites(self):
+        """Return a list of tuples (coords, site) for all sites on this tile."""
+        return [(coords, self.siteAt(coords)) for coords in hexcoords.HexCoords(0, 0).neighbors()]
         

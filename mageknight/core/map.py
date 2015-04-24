@@ -20,8 +20,31 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from mageknight import hexcoords
+from mageknight.data import *  # @UnusedWildImport
 from . import basemap
 
-class Map(basemap.Map):
-    pass
+
+class SiteOnMap:
+    def __init__(self, site):
+        self.site = site
+        
+    def __getattr__(self, attr):
+        return getattr(self.site, attr)
     
+
+class Map(basemap.Map):
+    def __init__(self, match, shape):
+        super().__init__(match, shape)
+        
+        self.addTile(Tile('A'), hexcoords.HexCoords(0,0))
+        self.addTile(Tile('1'), hexcoords.HexCoords(1,3))
+        self.addTile(Tile('2'), hexcoords.HexCoords(3,2))
+        
+    def addTile(self, tile, coords):
+        """Add the tile and put enemy tokens on top of it."""
+        super().addTile(tile, coords)
+        for c, site in tile.allSites():
+            if site == Site.maraudingOrcs:
+                enemy = self.match.chooseEnemy(EnemyCategory.maraudingOrcs)
+                self._addEnemy(enemy, coords + c)
