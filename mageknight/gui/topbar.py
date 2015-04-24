@@ -37,6 +37,9 @@ class TopBar(QtWidgets.QWidget):
         layout.addWidget(self.manaSourceWidget)
         self.buttonBar = ButtonBar(match)
         layout.addWidget(self.buttonBar, 1)
+        
+        cheatBar = CheatBar(match)
+        layout.addWidget(cheatBar)
 
 
 class RoundWidget(QtWidgets.QLabel):
@@ -115,4 +118,17 @@ class ButtonBar(QtWidgets.QToolBar):
         self.addAction(self.match.stack.createUndoAction())
         self.addAction(self.match.stack.createRedoAction())
         
+            
+
+class CheatBar(QtWidgets.QToolBar):
+    def __init__(self, match):
+        super().__init__()
+        import functools
+        from mageknight.core import effects
+        for pointsType in [effects.MovePoints, effects.InfluencePoints,
+                           effects.BlockPoints, effects.AttackPoints]:
+            effect = pointsType(4)
+            action = QtWidgets.QAction(effect.title[:2], self)
+            action.triggered.connect(functools.partial(match.effects.add, effect))
+            self.addAction(action)
             
