@@ -23,6 +23,8 @@
 import random
 
 from . import baseplayer
+from mageknight.data import Site
+
 
 class Player(baseplayer.Player):                                
     def initCards(self):
@@ -35,10 +37,20 @@ class Player(baseplayer.Player):
         self.cardCountChanged.emit()
         self.handCardsChanged.emit()
         
+    def modifiedCardLimit(self):
+        limit = self.cardLimit
+        map = self.match.map
+        keeps = [site for site in map.sites.values() if site.type is Site.keep and site.owner is self]
+        playerCoords = map.persons[self]
+        if any(keep.coords == playerCoords or keep.coords.isNeighborOf(playerCoords) for keep in keeps):
+            limit += len(keeps)
+        # TODO: cities
+        return limit
+        
     def drawCards(self, count=None):
         self.match.revealNewInformation()
         if count is None:
-            count = self.cardLimit - self.handCardCount
+            count = self.modifiedCardLimit() - self.handCardCount
         count = min(count, self.drawPileCount)
         if count > 0:
             self.handCards.extend(self.drawPile[-count:])
