@@ -274,25 +274,38 @@ class Match(QtCore.QObject):
         self.payMovePoints(self.map.terrainCosts[terrain])
         self.updateActions()
         self.map.movePerson(player, coords)
-        
+              
         # Site
         site = self.map.siteAt(coords) # returns only active sites
         if site is not None:
             site.onEnter(self, self.currentPlayer)
         for site in self.map.adjacentSites(coords):
             site.onAdjacent(self, self.currentPlayer)
-        
+
         # Marauding enemies
-        oldEnemies = set(self.map.getAdjacentMaraudingEnemies(pos))
-        newEnemies = set(self.map.getAdjacentMaraudingEnemies(coords))
-        if len(oldEnemies.intersection(newEnemies)) > 0:
-            enemies = []
-            for site in oldEnemies.intersection(newEnemies):
-                enemies.extend(site.enemies)
-            self.combat.begin(enemies)
-        elif len(self.map.getAdjacentMaraudingEnemies(coords)) > 0:
-            self.actions.add('marauding', self.tr("Fight marauding enemies"), None) # TODO: insert method
-        else: self.actions.remove('marauding') 
+        oldMarauderSites = set(self.map.adjacentMarauderSites(pos))
+        newMarauderSites = set(self.map.adjacentMarauderSites(coords))
+        marauders = newMarauderSites.intersection(oldMarauderSites)
+        if len(marauders) > 0:
+            if not self.state.inCombat:
+                self.combat.begin(None, maraudersProvokable=True)
+            for site in marauders:
+                # these enemies are not provokable, they must be fought
+                self.combat.setEnemiesProvokable(site.enemies, False)
+                
+        elif len(newMarauderSites) > 0:
+            self.actions.add('marauding', self.tr("Fight marauding enemies"), self.fightMaraudingEnemies)
+        else: self.actions.remove('marauding')
+      
+    
+    def fightMaraudingEnemies(self):
+        coords = self.map.persons[self.currentPlayer]
+        marauders = self.map.adjacentMarauderSites(coords)
+        if len(marauders) == 1:
+            self.combat.begin(marauders[0])
+        elif len(marauders) > 1:
+            # Let the user choose which marauders to provoke
+            self.combat.begin(None, maraudersProvokable=True)
     
     def updateActions(self):
         self.actions.clear()

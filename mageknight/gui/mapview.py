@@ -70,13 +70,20 @@ class MapModel(QtWidgets.QGraphicsScene):
         self.addItem(tileItem)
         
     def _siteChanged(self, coords):
-        site = self.map.sites[coords]
         if coords not in self._siteItems:
+            # Site added
+            site = self.map.sites[coords]
             item = SiteItem(site)
             item.setPos(coords.center())
             self._siteItems[coords] = item
             self.addItem(item)
+        elif coords not in self.map.sites:
+            # Site removed
+            self.removeItem(self._siteItems[coords])
+            del self._siteItems[coords]
         else:
+            # Site changed
+            site = self.map.sites[coords]
             self._siteItems[coords]._update()
             self._shiftItemsAt(coords)
     

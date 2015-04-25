@@ -46,6 +46,7 @@ class State(enum.Enum):
     combatEnd = 3    # after a combat, before end of turn. User may play special effects and healing.
     
     # Combat states
+    provokeMarauders = 10 # "invite" additional enemies at the beginning of a fight
     rangeAttack = 11
     block = 12
     assignDamage = 13
@@ -53,7 +54,7 @@ class State(enum.Enum):
     
     @staticmethod
     def combatStates():
-        return (State.rangeAttack, State.block, State.assignDamage, State.attack)
+        return (State.provokeMarauders, State.rangeAttack, State.block, State.assignDamage, State.attack)
     
     @property
     def inCombat(self):

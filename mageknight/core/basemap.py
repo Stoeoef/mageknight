@@ -83,7 +83,7 @@ class Map(QtCore.QObject):
         
     
     def siteAt(self, coords):
-        if coords in self.sites and self.sites[coords].isActive:
+        if coords in self.sites:
             return self.sites[coords]
         else: return None
         
@@ -91,10 +91,19 @@ class Map(QtCore.QObject):
         sites = [self.siteAt(c) for c in coords.neighbors()]
         return [s for s in sites if s is not None]
         
-    def addSite(self, site):
+        
+    def removeSite(self, site):
+        self.match.stack.push(stack.Call(self._removeSite, site),
+                              stack.Call(self._addSite, site))
+
+    def _addSite(self, site):
         # note: this is only executed when new tiles are revealed => no undo/redo necessary
         assert site.coords not in self.sites 
         self.sites[site.coords] = site
+        self.siteChanged.emit(site.coords)
+        
+    def _removeSite(self, site):
+        del self.sites[site.coords]
         self.siteChanged.emit(site.coords)
     
     def addPerson(self, person, coords):
@@ -131,11 +140,11 @@ class Map(QtCore.QObject):
     def setEnemies(self, site, enemies):
         self.match.stack.push(stack.Call(self._setEnemies, site, enemies),
                               stack.Call(self._setEnemies, site, site.enemies))
-        
-    def _addEnemy(self, site, enemy):
-        site.enemies.append(enemy)
-        self.siteChanged.emit(site.coords)
-        
+
+    def removeEnemy(self, site, enemy):
+        enemies = [e for e in site.enemies if e != enemy]
+        self.setEnemies(site, enemies)
+
     def _setEnemies(self, site, enemies):
         site.enemies = enemies
         self.siteChanged.emit(site.coords)

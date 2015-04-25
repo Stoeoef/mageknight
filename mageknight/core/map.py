@@ -32,7 +32,7 @@ class Map(basemap.Map):
         
         self.addTile(Tile('A'), hexcoords.HexCoords(0,0))
         self.addTile(Tile('5'), hexcoords.HexCoords(1,3))
-        self.addTile(Tile('6'), hexcoords.HexCoords(3,2))
+        self.addTile(Tile('4'), hexcoords.HexCoords(3,2))
         
     def addTile(self, tile, coords):
         """Add the tile and put enemy tokens on top of it."""
@@ -40,7 +40,7 @@ class Map(basemap.Map):
         for c, site, data in tile.allSites():
             site = sites.create(site, self.match, coords + c, data)
             if site is not None: # TODO: remove debugging code
-                self.addSite(site)
+                self._addSite(site)
     
     def resetTerrainCosts(self):
         """Reset cost of all terrains to their default values."""
@@ -73,7 +73,7 @@ class Map(basemap.Map):
         enemies.extend(self.match.chooseEnemies(unknownEnemies))
         self._setEnemies(site, enemies)
         
-    def getAdjacentMaraudingEnemies(self, coords):
+    def adjacentMarauderSites(self, coords):
         return [site for site in self.adjacentSites(coords)
                 if site.type in [Site.maraudingOrcs, Site.draconum]]
         

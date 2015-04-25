@@ -47,7 +47,9 @@ class Effect:
         return other is self # should be implemented in subclasses
     
     def __str__(self):
-        return self.title
+        if hasattr(self, 'title'):
+            return self.title
+        else: return type(self).__name__
 
 
 class UniqueEffect(Effect):

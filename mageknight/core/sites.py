@@ -38,7 +38,6 @@ def create(siteType, match, coords, data):
 class SiteOnMap:
     def __init__(self, match, coords, data):
         self.coords = coords
-        self.isActive = True
         self.enemies = []
         self.owner = None
         
@@ -51,13 +50,17 @@ class SiteOnMap:
     def onBeginOfTurn(self, match, player): pass
     def onEndOfTurn(self, match, player): pass
     
+    def onEnemyKilled(self, match, player, enemy):
+        match.map.removeEnemy(self, enemy)
+        player.addFame(enemy.fame) # TODO: halve in certain cases
+        
 
 class FortifiedSite(SiteOnMap):
     def onEnter(self, match, player):
         if self.owner is None:
             player.addReputation(-1)
             match.map.revealEnemies(self)
-            match.combat.begin(self.enemies)
+            match.combat.begin(self, maraudersProvokable=True)
         else:
             if not isinstance(self, Keep) or self.owner is player: # TODO: conquer keeps of other players
                 if match.state == State.movement: # should always be the case
@@ -68,12 +71,9 @@ class FortifiedSite(SiteOnMap):
             match.map.revealEnemies(self)
             
     def onCombatEnd(self, match, player):
-        # Rules: additional marauding enemies must not be considered here
-        remainingEnemies = [enemy for enemy in match.combat.remainingEnemies() if enemy in self.enemies]
-        if len(remainingEnemies) == 0:
+        if len(self.enemies) == 0:
             match.map.setOwner(self, player)
-        # TODO: redrawal 
-        match.map.setEnemies(self, remainingEnemies)
+        # TODO: redrawal
     
     
 class AdventureSite(SiteOnMap):
@@ -83,10 +83,12 @@ class AdventureSite(SiteOnMap):
             
     def onCombatEnd(self, match, player):
         # note: owner does not change when a dungeon/tomb is reentered
-        if len(match.combat.remainingEnemies()) == 0 and self.owner is None:
+        if self.owner is None and len(self.enemies) == 0:
             match.map.setOwner(self, player)
             # TODO: gain reward
-        match.map.setEnemies(self, [])
+        else:
+            # remove enemies so that new enemies are chosen at the next fight
+            match.map.setEnemies(self, [])
 
 
 class CrystalMines(SiteOnMap):
@@ -99,15 +101,30 @@ class CrystalMines(SiteOnMap):
     def onEndOfTurn(self, match, player):
         player.addCrystal(self.color)
         
+
+class Draconum(SiteOnMap):
+    type = Site.draconum
     
+    def __init__(self, match, coords, data):
+        super().__init__(match, coords, data)
+        self.enemies = match.chooseEnemies([EnemyCategory.draconum])
+        
+    def onEnter(self, match, player):
+        raise InvalidAction("Cannot enter a space occupied by a draconum.")
+    
+    def onEnemyKilled(self, match, player, enemy):
+        super().onEnemyKilled(match, player, enemy)
+        player.addReputation(2)
+
+
 class Dungeon(AdventureSite):
     type = Site.dungeon
     canReenter = True
     
     def enter(self, match, player):
         # TODO: night rules, no units, reenter
-        enemies = match.chooseEnemies([EnemyCategory.draconum])
-        match.combat.begin(enemies)
+        match.map.setEnemies(self, match.chooseEnemies([EnemyCategory.draconum]))
+        match.combat.begin(self)
         
 
 class Keep(FortifiedSite):
@@ -155,7 +172,7 @@ class MagicalGlade(SiteOnMap):
                 player.heal(fromDiscardPile=True)
         
     
-class MaraudingOrcs(FortifiedSite):
+class MaraudingOrcs(SiteOnMap):
     type = Site.maraudingOrcs
     
     def __init__(self, match, coords, data):
@@ -163,10 +180,13 @@ class MaraudingOrcs(FortifiedSite):
         self.enemies = match.chooseEnemies([EnemyCategory.maraudingOrcs])
         
     def onEnter(self, match, player):
-        if self.isActive:
-            raise InvalidAction("Cannot enter a space occupied by marauding orcs.")
-        
-        
+        raise InvalidAction("Cannot enter a space occupied by marauding orcs.")
+    
+    def onEnemyKilled(self, match, player, enemy):
+        super().onEnemyKilled(match, player, enemy)
+        player.addReputation(1)
+
+
 class Monastery(SiteOnMap):
     type = Site.monastery
     
@@ -185,16 +205,17 @@ class Monastery(SiteOnMap):
         
     def burn(self, match, player):
         player.addReputation(-3)
-        enemies = match.chooseEnemies([EnemyCategory.mageTower])
-        match.map.setEnemies(self, enemies)
-        match.combat.begin(self.enemies) # TODO: no units
+        match.map.setEnemies(self, match.chooseEnemies([EnemyCategory.mageTower]))
+        match.combat.begin(self) # TODO: no units
         match.revealNewInformation()
         
     def onCombatEnd(self, match, player):
-        if len(match.combat.remainingEnemies()) == 0:
+        if len(self.enemies) == 0:
             match.map.setOwner(self, player)
             # TODO: gain an artifact
-        match.map.setEnemies(self, [])
+        else:
+            # remove enemies so that new enemies are chosen at the next fight
+            match.map.setEnemies(self, [])
     
 
 class MonsterDen(AdventureSite):
@@ -202,8 +223,8 @@ class MonsterDen(AdventureSite):
     canReenter = False
             
     def enter(self, match, player):
-        enemies = match.chooseEnemies([EnemyCategory.dungeon])
-        match.combat.begin(enemies)
+        match.map.setEnemies(self, match.chooseEnemies([EnemyCategory.dungeon]))
+        match.combat.begin(self)
         
 
 class SpawningGrounds(AdventureSite):
@@ -211,8 +232,8 @@ class SpawningGrounds(AdventureSite):
     canReenter = False
             
     def enter(self, match, player):
-        enemies = match.chooseEnemies([EnemyCategory.dungeon, EnemyCategory.dungeon])
-        match.combat.begin(enemies)
+        match.map.setEnemies(self, match.chooseEnemies([EnemyCategory.dungeon, EnemyCategory.dungeon]))
+        match.combat.begin(self)
         
 
 class Tomb(AdventureSite):
@@ -221,8 +242,8 @@ class Tomb(AdventureSite):
     
     def enter(self, match, player):
         # TODO: night rules, no units, reenter
-        enemies = match.chooseEnemies([EnemyCategory.draconum])
-        match.combat.begin(enemies)    
+        match.map.setEnemies(self, match.chooseEnemies([EnemyCategory.draconum]))
+        match.combat.begin(self)    
 
 
 class Village(SiteOnMap):
@@ -249,6 +270,6 @@ class Village(SiteOnMap):
         match.effects.add(effects.HealPoints(1))
         
 
-ALL_SITES = (CrystalMines, Dungeon, Keep, MageTower, MagicalGlade, MaraudingOrcs,
+ALL_SITES = (CrystalMines, Draconum, Dungeon, Keep, MageTower, MagicalGlade, MaraudingOrcs,
              Monastery, MonsterDen, SpawningGrounds, Tomb, Village)
     

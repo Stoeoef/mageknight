@@ -27,9 +27,11 @@ from . import basecombat, effects, sites
 
     
 class EnemyInCombat:
-    def __init__(self, enemy):
+    def __init__(self, enemy, site):
         self.enemy = enemy
+        self.site = site
         self.effects = []
+        self.isProvokable = False
         self.isAlive = True
         self.isSelected = False
         self.isBlocked = False
@@ -46,25 +48,70 @@ class EnemyInCombat:
         
 
 class Combat(basecombat.BaseCombat):
-    def begin(self, enemies):
-        enemies = [EnemyInCombat(enemy) for enemy in enemies]
-        self.setEnemies(enemies)
+    def begin(self, site, maraudersProvokable=False):
+        """Begin a combat against the given site. This is not necessarily the site on which the player is
+        standing: It is e.g. possible to fight against a marauding enemy while standing on a monastery.
+        When fighting against multiple enemies, call this method several times.
+        """ 
+        assert not self.match.state.inCombat
+        
+        if site is not None:
+            self.setEnemies([EnemyInCombat(enemy, site) for enemy in site.enemies])
+        else:
+            self.setEnemies([])
+            
+        # Reset various stuff
         self.match.updateActions()
-        self.setState(State.rangeAttack)
-        # TODO: reset other stuff?
         for unit in self.match.currentPlayer.units:
             self.setUnitProtected(unit, False)
+        
+        # Marauders
+        if not maraudersProvokable:
+            self.setState(State.rangeAttack)
+        else:
+            coords = self.match.map.persons[self.match.currentPlayer]
+            provokable = self.match.map.adjacentMarauderSites(coords)
+            if len(provokable) > 0:
+                for site in provokable:
+                    enemies = [EnemyInCombat(enemy, site) for enemy in site.enemies]
+                    self.addEnemies(enemies)
+                    self.setEnemiesProvokable(enemies, True)
+                self.setState(State.provokeMarauders)
+            else: self.setState(State.rangeAttack) # should not happen
+        
         self.combatStarted.emit()
     
+    def end(self):
+        sites = set()
+        for enemy in self.enemies:
+            sites.add(enemy.site)
+        for site in sites:
+            site.onCombatEnd(self.match, self.match.currentPlayer)
+        self.setEnemies([])
+        
+        # Reset various stuff
+        self.match.updateActions()
+        for unit in self.match.currentPlayer.units:
+            self.setUnitProtected(unit, False)
+        
+    def setEnemiesProvokable(self, enemies, isProvokable):
+        enemies = [self._find(e) if isinstance(e, Enemy) else e for e in enemies]
+        super().setEnemiesProvokable(enemies, isProvokable)
+        if not isProvokable:
+            for enemy in enemies:
+                self.setEnemySelected(enemy, True)
+        
+        if self.match.state is State.provokeMarauders and not any(e.isProvokable for e in self.enemies):
+            self.setState(State.rangeAttack)
+        
     def checkEffectPlayable(self, effect=None, type=EffectType.unknown):
         self.setEffectsPlayed(True)
         
         state = self.match.state
         assert state.inCombat
-        site = self.match.map.siteAtPlayer(self.match.currentPlayer)
         
-        if state is State.assignDamage:
-            raise InvalidAction("Cannot play effects during assign damage phase.")
+        if state in (State.provokeMarauders, State.assignDamage):
+            raise InvalidAction("Cannot play any effects now.")
         else:
             if not self.hasSelectedEnemy():
                 raise InvalidAction("Must select enemies first.")
@@ -86,13 +133,13 @@ class Combat(basecombat.BaseCombat):
                     fortificationLevel = 0
                     if any(enemy.fortified for enemy in self.selectedEnemies()):
                         fortificationLevel += 1
-                    if site is not None and isinstance(site, sites.FortifiedSite) \
-                            and any(enemy.enemy in site.enemies for enemy in self.selectedEnemies()):
-                        # Rules: additionally provoked marauding enemies are not fortified
+                    # Rules: marauding enemies are not fortified when fighting in a fortified site
+                    if any(isinstance(enemy.site, sites.FortifiedSite) for enemy in self.selectedEnemies()):
                         fortificationLevel += 1
+                        print([(e.site, e) for e in self.selectedEnemies()])
                     
                     if fortificationLevel == 2:
-                        # Note: We cannot skip this combat state if enemies are twice fortified,
+                        # Note: We cannot skip this combat state even if enemies are twice fortified,
                         # because the user might play an "Enemy loses fortifications" effect.
                         raise InvalidAction("Enemies are twice fortified.")
                     elif fortificationLevel == 1 and effect.range != AttackRange.siege:
@@ -105,6 +152,13 @@ class Combat(basecombat.BaseCombat):
         self.clearSelection()
         self.setEffectsPlayed(False)
         
+        # Contrary to other states, State.provokeMarauders is entered only once (or not at all)
+        if state is State.provokeMarauders:
+            self.match.setState(state)
+            for enemy in self.enemies:
+                self.setEnemySelected(enemy, not enemy.isProvokable)
+            return
+                
         # Skip states under certain circumstances
         if not any(enemy.isAlive for enemy in self.enemies):
             state = State.combatEnd
@@ -121,14 +175,7 @@ class Combat(basecombat.BaseCombat):
             if len(activeEnemies) == 1:
                 self.setEnemySelected(activeEnemies[0], True)
         else:
-            # Combat end
-            site = self.match.map.siteAtPlayer(self.match.currentPlayer)
-            if site is not None: # note: self.remainingEnemies must still work here
-                site.onCombatEnd(self.match, self.match.currentPlayer)
-            self.setEnemies([])
-    
-    def remainingEnemies(self):
-        return [enemy.enemy for enemy in self.enemies if enemy.isAlive]
+            self.end()
     
     def isEnemyActive(self, enemy):
         """Return whether the given enemy can be targeted in the current phase
@@ -148,6 +195,8 @@ class Combat(basecombat.BaseCombat):
             raise InvalidAction("Cannot change enemy selection after playing effects.")
         if select and not self.isEnemyActive(enemy):
             raise InvalidAction("Cannot select this enemy.")
+        if self.match.state is State.provokeMarauders and not select and not enemy.isProvokable:
+            raise InvalidAction("This enemy must take part.")
                 
         if select and self.match.state in [State.block, State.assignDamage]:
             # only one enemy can be targeted in these phases. Thus: deselect all others
@@ -162,6 +211,10 @@ class Combat(basecombat.BaseCombat):
             raise InvalidAction("Cannot go to next combat state now.")
         if not self.hasSelectedEnemy():
             raise InvalidAction("Must select an enemy first.")
+        if state == State.provokeMarauders:
+            self.setEnemies([e for e in self.enemies if e.isSelected])
+            self.setState(State.rangeAttack)
+            return
         if state == State.rangeAttack:
             self.resolveAttack(ranged=True)
         elif state == State.block:
@@ -208,7 +261,8 @@ class Combat(basecombat.BaseCombat):
             
     def killEnemies(self, enemies):
         super().killEnemies(enemies)
-        self.match.currentPlayer.addFame(sum(e.fame for e in enemies)) # TODO: halve in certain cases
+        for enemy in enemies:
+            enemy.site.onEnemyKilled(self.match, self.match.currentPlayer, enemy.enemy)
             
     def resolveBlock(self):
         # TODO: Handle summoners

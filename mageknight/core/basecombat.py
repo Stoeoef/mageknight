@@ -33,9 +33,9 @@ class BaseCombat(QtCore.QObject):
     def __init__(self, match):
         super().__init__()
         self.match = match
-        self.effectsPlayed = False
         self.enemies = []
-        
+        self.effectsPlayed = False
+
     def setEnemies(self, enemies):
         self.match.stack.push(stack.Call(self._setEnemies, enemies),
                               stack.Call(self._setEnemies, self.enemies))
@@ -43,13 +43,33 @@ class BaseCombat(QtCore.QObject):
     def _setEnemies(self, enemies):
         self.enemies = enemies
         self.enemiesChanged.emit()
+        
+    def addEnemies(self, enemies):
+        self.setEnemies(self.enemies + enemies)
+        
+    def _find(self, enemy):
+        assert isinstance(enemy, Enemy) # not EnemyInCombat
+        for enemyInCombat in self.enemies:
+            if enemyInCombat.enemy == enemy:
+                return enemyInCombat
+        else: raise ValueError("Enemy '{}' is not part of this combat".format(enemy))
+        
+    def setEnemiesProvokable(self, enemies, isProvokable):
+        enemies = [e for e in enemies if e.isProvokable != isProvokable]
+        if len(enemies) > 0:
+            self.match.stack.push(stack.Call(self._setEnemiesProvokable, enemies, isProvokable),
+                                  stack.Call(self._setEnemiesProvokable, enemies, not isProvokable))
     
+    def _setEnemiesProvokable(self, enemies, isProvokable):
+        for enemy in enemies:
+            enemy.isProvokable = isProvokable
+        
     def hasSelectedEnemy(self):
         return any(enemy.isSelected for enemy in self.enemies)
         
     def selectedEnemies(self):
         return [enemy for enemy in self.enemies if enemy.isSelected]
-                
+            
     def setEffectsPlayed(self, effectsPlayed):
         if effectsPlayed != self.effectsPlayed:
             self.match.stack.push(stack.Call(self._setEffectsPlayed, effectsPlayed),
@@ -77,12 +97,13 @@ class BaseCombat(QtCore.QObject):
         self.enemiesChanged.emit()
         
     def killEnemies(self, enemies):
-        self.match.stack.push(stack.Call(self._setEnemiesAlive, enemies, False),
-                              stack.Call(self._setEnemiesAlive, enemies, True))
+        enemies = [e for e in enemies if e.isAlive]
+        if len(enemies) > 0:
+            self.match.stack.push(stack.Call(self._setEnemiesAlive, enemies, False),
+                                  stack.Call(self._setEnemiesAlive, enemies, True))
         
     def _setEnemiesAlive(self, enemies, alive):
         for enemy in enemies:
-            assert enemy.isAlive != alive # otherwise undoing killEnemies will lead to problems
             enemy.isAlive = alive
         self.enemiesChanged.emit()
         
