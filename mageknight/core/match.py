@@ -73,6 +73,9 @@ class Match(QtCore.QObject):
     def beginTurn(self):
         self.setState(State.movement)
         self.updateActions()
+        site = self.map.siteAtPlayer(self.currentPlayer)
+        if site is not None:
+            site.onBeginOfTurn(self, self.currentPlayer)
         self.revealNewInformation() # clear stack
         
     def endTurn(self):

@@ -25,6 +25,7 @@ translate = QtCore.QCoreApplication.translate
 
 from mageknight.data import * # @UnusedWildImport
 from mageknight.core import effects 
+from mageknight.gui import dialogs
 
 
 def create(siteType, match, coords, data):
@@ -47,6 +48,7 @@ class SiteOnMap:
     def onEnter(self, match, player): pass
     def onAdjacent(self, match, player): pass
     def onCombatEnd(self, match, player): pass
+    def onBeginOfTurn(self, match, player): pass
     def onEndOfTurn(self, match, player): pass
     
 
@@ -87,6 +89,34 @@ class Keep(FortifiedSite):
         self.enemies = [UnknownEnemy(EnemyCategory.keep)]
     
 
+class MagicalGlade(SiteOnMap):
+    type = Site.magicalGlade
+    
+    def onBeginOfTurn(self, match, player):
+        color = Mana.gold if match.round.type is RoundType.day else Mana.black
+        match.effects.add(effects.ManaTokens(color))
+        
+    def onEndOfTurn(self, match, player):
+        options = []
+        if any(card.isWound for card in player.handCards):
+            options.append(('hand', translate('sites', "Yes, from hand")))
+        if any(card.isWound for card in player.discardPile):
+            options.append(('discardPile', translate('sites', "Yes, from discard pile")))
+        
+        if len(options) > 0:
+            options.append(('no', translate('sites', "No")))
+            option = dialogs.choose(
+                            options,
+                            labelFunc = lambda t: t[1],
+                            text = translate('sites', "Magical glade: Do you wish to discard a wound?"),
+                            default = options[-1])
+            
+            if option[0] == 'hand':
+                player.heal()
+            elif option[0] == 'discardPile':
+                player.heal(fromDiscardPile=True)
+        
+    
 class MaraudingOrcs(FortifiedSite):
     type = Site.maraudingOrcs
     
@@ -121,5 +151,5 @@ class Village(SiteOnMap):
         match.effects.add(effects.HealPoints(1))
         
 
-ALL_SITES = (CrystalMines, Keep, MaraudingOrcs, Village)
+ALL_SITES = (CrystalMines, Keep, MagicalGlade, MaraudingOrcs, Village)
     

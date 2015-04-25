@@ -36,6 +36,7 @@ class Card:
     def __repr__(self):
         return type(self).__name__
     
+    @property
     def isWound(self):
         return isinstance(self, Wound)
 

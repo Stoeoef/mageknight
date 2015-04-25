@@ -122,6 +122,13 @@ class Player(QtCore.QObject):
         else:
             for _ in range(wounds):
                 self.addToDiscardPile(cards.get('wound'))
+                
+    def heal(self, fromDiscardPile=False):
+        theList = self.handCards if not fromDiscardPile else self.discardPile
+        for card in theList:
+            if card.isWound:
+                self.removeCard(card)
+                break
         
     def addCard(self, card):
         self.match.stack.push(stack.Call(self._insertCard, self.handCardCount, card),

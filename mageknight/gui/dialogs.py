@@ -30,19 +30,22 @@ from mageknight.data import * # @UnusedWildImport
 
 
 class ChooseDialog(QtWidgets.QDialog):
-    def __init__(self, options, labelFunc=str, title=translate('ChooseDialog', "Choose one"), text=None):
+    def __init__(self, options, labelFunc=str, title=translate('ChooseDialog', "Choose one"),
+                 text=None, default=None):
         super().__init__(mainwindow.mainWindow)
         self.setWindowTitle(title)
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.options = options       
+        self.index = None
+        self.default = default
 
         if text is not None:
             label = QtWidgets.QLabel(text)
             label.setWordWrap(True)
             layout.addWidget(label)
             
-        self.options = options       
-        self.index = None
         for i, option in enumerate(options):
             button = QtWidgets.QPushButton(labelFunc(option))
             button.clicked.connect(functools.partial(self._choose, i))
@@ -56,7 +59,7 @@ class ChooseDialog(QtWidgets.QDialog):
     def chosenOption(self):
         if self.index is not None:
             return self.options[self.index]
-        else: return None
+        else: return self.default
         
         
 def choose(options, **kwargs):
