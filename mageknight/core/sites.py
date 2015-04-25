@@ -27,15 +27,15 @@ from mageknight.data import * # @UnusedWildImport
 from mageknight.core import effects 
 
 
-def create(siteType, match, coords):
+def create(siteType, match, coords, data):
     for cls in ALL_SITES:
         if cls.type is siteType:
-            return cls(match, coords)
+            return cls(match, coords, data)
     else: return None # TODO: raise an error instead when all sites are implemented
     
     
 class SiteOnMap:
-    def __init__(self, coords):
+    def __init__(self, match, coords, data):
         self.coords = coords
         self.isActive = True
         self.enemies = []
@@ -47,6 +47,7 @@ class SiteOnMap:
     def onEnter(self, match, player): pass
     def onAdjacent(self, match, player): pass
     def onCombatEnd(self, match, player): pass
+    def onEndOfTurn(self, match, player): pass
     
 
 class FortifiedSite(SiteOnMap):
@@ -66,20 +67,31 @@ class FortifiedSite(SiteOnMap):
         match.map.setOwner(self, player)
         match.map.setEnemies(self, [])
     
+
+class CrystalMines(SiteOnMap):
+    type = Site.crystalMines
     
+    def __init__(self, match, coords, data):
+        super().__init__(match, coords, data)
+        self.color = data[0]
+        
+    def onEndOfTurn(self, match, player):
+        player.addCrystal(self.color)
+    
+
 class Keep(FortifiedSite):
     type = Site.keep
     
-    def __init__(self, match, coords):
-        super().__init__(coords)
+    def __init__(self, match, coords, data):
+        super().__init__(match, coords, data)
         self.enemies = [UnknownEnemy(EnemyCategory.keep)]
     
 
 class MaraudingOrcs(FortifiedSite):
     type = Site.maraudingOrcs
     
-    def __init__(self, match, coords):
-        super().__init__(coords)
+    def __init__(self, match, coords, data):
+        super().__init__(match, coords, data)
         self.enemies = [match.chooseEnemy(EnemyCategory.maraudingOrcs)]
         
     def onEnter(self, match, player):
@@ -92,8 +104,8 @@ class MaraudingOrcs(FortifiedSite):
 class Village(SiteOnMap):
     type = Site.village
     
-    def __init__(self, match, coords):
-        super().__init__(coords)
+    def __init__(self, match, coords, data):
+        super().__init__(match, coords, data)
         self.plundered = False
     
     def onEnter(self, match, player):
@@ -109,5 +121,5 @@ class Village(SiteOnMap):
         match.effects.add(effects.HealPoints(1))
         
 
-ALL_SITES = (Keep, MaraudingOrcs, Village)
+ALL_SITES = (CrystalMines, Keep, MaraudingOrcs, Village)
     

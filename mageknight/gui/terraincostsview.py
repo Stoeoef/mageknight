@@ -30,7 +30,7 @@ class TerrainCostsView(QtWidgets.QDialog):
     def __init__(self, parent, match):
         super().__init__(parent)
         self.setWindowTitle(self.tr("Terrain costs"))
-        self.map = map
+        self.map = match.map
         
         layout = QtWidgets.QVBoxLayout(self)
         self.label = QtWidgets.QLabel()

@@ -37,8 +37,8 @@ class Map(basemap.Map):
     def addTile(self, tile, coords):
         """Add the tile and put enemy tokens on top of it."""
         super().addTile(tile, coords)
-        for c, site in tile.allSites():
-            site = sites.create(site, self.match, coords + c)
+        for c, site, data in tile.allSites():
+            site = sites.create(site, self.match, coords + c, data)
             if site is not None: # TODO: remove debugging code
                 self.addSite(site)
     

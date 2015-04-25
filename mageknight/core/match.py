@@ -76,6 +76,9 @@ class Match(QtCore.QObject):
         self.revealNewInformation() # clear stack
         
     def endTurn(self):
+        site = self.map.siteAtPlayer(self.currentPlayer)
+        if site is not None:
+            site.onEndOfTurn(self, self.currentPlayer)
         # TODO: combat reward, level-up, etc.
         self.effects.clear()
         self.currentPlayer.drawCards()

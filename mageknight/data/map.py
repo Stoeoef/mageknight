@@ -23,6 +23,7 @@
 import enum
 
 from mageknight import hexcoords, utils
+from .core import Mana
 
 __all__ = ['MapShape', 'Terrain', 'Site', 'Tile']
 
@@ -105,12 +106,16 @@ class Tile:
     # Convert strings to list of Terrains
     _terrains = {key: [Terrain.fromChar(c) for c in string] for key, string in _terrains.items()}
     
+    # Map tile id to list of sites (or 0). List begins in the center, then top right, then clockwise.
+    # Each entry can be either 0, or a Site, or a tuple (Site, data, ...).
+    # The dict will be processed below, never use it directly.
+    # Use siteAt and siteDataAt instead.
     _sites = {
           'A':  [Site.portal, 0, 0, 0, 0, 0, 0],
           'B':  [Site.portal, 0, 0, 0, 0, 0, 0],
           '1':  [Site.magicalGlade, 0, Site.village, 0, 0, 0, Site.maraudingOrcs],
-          '2':  [0, Site.magicalGlade, Site.village, 0, Site.crystalMines, 0, Site.maraudingOrcs],
-          '3':  [0, Site.keep, 0, Site.crystalMines, Site.village, 0, 0, 0],
+          '2':  [0, Site.magicalGlade, Site.village, 0, (Site.crystalMines, Mana.green), 0, Site.maraudingOrcs],
+          '3':  [0, Site.keep, 0, (Site.crystalMines, Mana.white), Site.village, 0, 0, 0],
           '4':  [Site.mageTower, 0, 0, Site.village, 0, Site.maraudingOrcs, 0],
           '5':  [0, Site.monastery, Site.maraudingOrcs, Site.crystalMines, 0, Site.magicalGlade, 0],
           '6':  [Site.crystalMines, 0, 0, Site.maraudingOrcs, 0, Site.monsterDen, 0],
@@ -128,7 +133,15 @@ class Tile:
           'c7': [Site.city, 0, 0, Site.draconum, 0, Site.keep, Site.spawningGrounds],
           'c8': [Site.city, Site.crystalMines, 0, Site.draconum, 0, Site.draconum, Site.ancientRuins],
     }
+    _siteData = {key: [] for key in _sites.keys()}
     
+    # Process _sites, _siteData:
+    # store data part of tuples in _siteData (or None)
+    _siteData = {key: [site[1:] if isinstance(site, tuple) else None for site in sites]
+                  for key, sites in _sites.items()}
+    # remove second part of tuples from _sites
+    _sites = {key: [site[0] if isinstance(site, tuple) else site for site in sites]
+              for key, sites in _sites.items()}
     # Convert 0 to Site.none
     _sites = {key: [Site.none if s == 0 else s for s in values] for key, values in _sites.items()}
     
@@ -158,12 +171,18 @@ class Tile:
         sites = self._sites[self.id]
         return sites[self._fieldIndex(coords)]
     
+    def siteDataAt(self, coords):
+        """Return site data (e.g. crystal mine color) at the given coords, assuming this tile sits at (0,0).
+        """
+        siteData = self._siteData[self.id]
+        return siteData[self._fieldIndex(coords)]
+    
     def allSites(self):
         """Return a list of tuples (coords, site) for all sites on this tile."""
         sites = []
         for coords in hexcoords.HexCoords(0, 0).neighbors():
             site = self.siteAt(coords)
             if site is not Site.none:
-                sites.append((coords, site))
+                sites.append((coords, site, self.siteDataAt(coords)))
         return sites
         
