@@ -20,14 +20,20 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from . import baseplayer, cards
+import random
+
+from . import baseplayer
 
 class Player(baseplayer.Player):                                
-    def initDeedDeck(self):
-        # TODO: remove debugging stuff
-        names = ['improvisation', 'threaten', 'march', 'crystallize', 'battle_versatility', 'rage', 'mana_draw', 'tranquility', ]
-        self.drawPile = [cards.get(name) for name in names]
+    def initCards(self):
+        """Initialize cards at the beginning of a round."""
+        self.drawPile.extend(self.handCards)
+        self.drawPile.extend(self.discardPile)
+        self.handCards = []
+        self.discardPile = []
+        random.shuffle(self.drawPile)
         self.cardCountChanged.emit()
+        self.handCardsChanged.emit()
         
     def drawCards(self, count=None):
         self.match.revealNewInformation()

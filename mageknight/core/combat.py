@@ -49,7 +49,7 @@ class Combat(basecombat.BaseCombat):
     def begin(self, enemies):
         enemies = [EnemyInCombat(enemy) for enemy in enemies]
         self.setEnemies(enemies)
-        self.match.actions.clear()
+        self.match.updateActions()
         self.setState(State.rangeAttack)
         # TODO: reset other stuff?
         for unit in self.match.currentPlayer.units:
@@ -197,6 +197,10 @@ class Combat(basecombat.BaseCombat):
         points = efficientPoints + inefficientPoints // 2
         if points >= armor:
             self.killEnemies(self.selectedEnemies())
+            
+    def killEnemies(self, enemies):
+        super().killEnemies(enemies)
+        self.match.currentPlayer.addFame(sum(e.fame for e in enemies)) # TODO: halve in certain cases
             
     def resolveBlock(self):
         # TODO: Handle summoners

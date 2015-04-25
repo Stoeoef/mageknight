@@ -30,6 +30,8 @@ from mageknight.core import source, player, map, effectlist, shop, combat, actio
 from mageknight.gui import dialogs
 from .decorators import action
 
+DISCARD_CARDS = True # TODO: remove this debugging option
+
 
 class Match(QtCore.QObject):
     """This is the central object managing a match."""
@@ -41,23 +43,44 @@ class Match(QtCore.QObject):
         self.stack = stack.UndoStack()
         
         self.round = Round(1, RoundType.day)
-        self.state = State.movement
+        self.state = None
         self.players = players
         self.source = source.ManaSource(self, len(self.players)+2)
         self.map = map.Map(self, MapShape.wedge)
         self.effects = effectlist.EffectList(self)
         self.shop = shop.Shop(self)
-        self.shop.refreshUnits()
         self.combat = combat.Combat(self)
         self.actions = actions.ActionList(self)
         
+        self.currentPlayer = self.players[0]
         for player in self.players:
             player.match = self
             self.map.addPerson(player, hexcoords.HexCoords(0, 0))
-            player.initDeedDeck()
-            player.drawCards()
-        self.currentPlayer = self.players[0]    
+
+        self.beginRound()    
     
+    def beginRound(self):
+        self.source.reset()
+        self.shop.refreshUnits()
+        
+        for player in self.players:
+            player.initCards()
+            player.drawCards()
+            
+        # TODO: tactic selection
+        self.beginTurn()
+                    
+    def beginTurn(self):
+        self.setState(State.movement)
+        self.updateActions()
+        self.revealNewInformation() # clear stack
+        
+    def endTurn(self):
+        # TODO: combat reward, level-up, etc.
+        self.effects.clear()
+        self.currentPlayer.drawCards()
+        self.beginTurn()
+        
     def setState(self, state):
         print("SET STATE", state)
         assert isinstance(state, State)
@@ -186,11 +209,13 @@ class Match(QtCore.QObject):
         self.checkEffectPlayable(type=card.effectType)
         if isinstance(card, cards.ActionCard):
             if effectIndex == 0:
-                #player.discard(card) # TODO: disabled to make debugging life easier
+                if DISCARD_CARDS:
+                    player.discard(card)
                 card.basicEffect(self, player)
             elif effectIndex == 1:
                 self.payMana(card.color)
-                #player.discard(card) # TODO: see above
+                if DISCARD_CARDS:
+                    player.discard(card)
                 card.strongEffect(self, player)
             else: raise ValueError("Invalid effect number for card '{}': {}".format(card.name, effectIndex))
         
@@ -210,7 +235,7 @@ class Match(QtCore.QObject):
         self.sidewaysEffects()."""
         # No need to call checkEffectPlayable, because it will be called by effects.add.
         effect = self.sidewaysEffects()[effectIndex]
-        #player.discard(card) # TODO: disabled to make debugging life easier
+        player.discard(card)
         self.effects.add(effect)
         
     @action(State.movement)
@@ -229,7 +254,7 @@ class Match(QtCore.QObject):
             raise InvalidAction("This field is not passable")
         
         self.payMovePoints(self.map.terrainCosts[terrain])
-        self.actions.clear()
+        self.updateActions()
         self.map.movePerson(player, coords)
         
         # Site
@@ -250,14 +275,18 @@ class Match(QtCore.QObject):
         elif len(self.map.getAdjacentMaraudingEnemies(coords)) > 0:
             self.actions.add('marauding', self.tr("Fight marauding enemies"), None) # TODO: insert method
         else: self.actions.remove('marauding') 
-        
+    
+    def updateActions(self):
+        self.actions.clear()
+        if not self.state.inCombat:
+            self.actions.add('endturn', self.tr("End turn"), self.endTurn)
     
     def startInteraction(self):
         if self.state is not State.movement:
             raise InvalidAction("Cannot start interaction now.")
-        self.actions.clear()
+        self.updateActions()
         modifier = self.currentPlayer.reputationModifier
-        if modifier == 'X':
+        if modifier is REPUTATION_NONE:
             raise InvalidAction("Nobody wants to interact with you!")
         self.setState(State.interaction)
         if modifier != 0:

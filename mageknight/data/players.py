@@ -25,12 +25,14 @@ import enum
 from mageknight import utils
 from mageknight.data import RoundType
 
-__all__ = ['MIN_REPUTATION', 'MAX_REPUTATION', 'REPUTATION_MODIFIERS', 'Hero', 'Tactic', 'PlayerTactic']
+__all__ = ['MIN_REPUTATION', 'MAX_REPUTATION', 'REPUTATION_NONE', 'REPUTATION_MODIFIERS',
+           'Hero', 'Tactic', 'PlayerTactic']
 
 
 MIN_REPUTATION = -7
 MAX_REPUTATION = 7
-REPUTATION_MODIFIERS = ('X', -5, -3, -2, -1, -1, 0, 0, 0, 1, 1, 2, 2, 3, 5)
+REPUTATION_NONE = 'X' # lowest field on the reputation track 
+REPUTATION_MODIFIERS = (REPUTATION_NONE, -5, -3, -2, -1, -1, 0, 0, 0, 1, 1, 2, 2, 3, 5)
 
 
 class Hero(enum.Enum):
@@ -39,7 +41,25 @@ class Hero(enum.Enum):
     Tovak = 2
     Arythea = 3
     Goldyx = 4
-
+    
+    def getDeedDeck(self):
+        """Return the start deed deck for this hero."""
+        ids = ['concentration', 'crystallize', 'determination', 'improvisation', 'mana_draw',
+               'march', 'march', 'promise', 'rage', 'rage', 'stamina', 'stamina',
+               'swiftness', 'swiftness', 'threaten', 'tranquility'
+              ]
+        if self is Hero.Norowas:
+            ids[ids.index('promise')] = 'noble_manners'
+        elif self is Hero.Tovak:
+            ids[ids.index('determination')] = 'cold_toughness'
+        elif self is Hero.Arythea:
+            ids[ids.index('rage')] = 'battle_versatility'
+        elif self is Hero.Goldy:
+            ids[ids.index('concentration')] = 'will_focus'
+            
+        from mageknight.core import cards
+        return [cards.get(id) for id in ids]
+            
     
 class Tactic(enum.Enum):
     """A tactic card, either from day or night rounds."""

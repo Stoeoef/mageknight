@@ -24,11 +24,7 @@ from mageknight.data import Mana, InvalidAction
 from . import basesource
 
 
-class ManaSource(basesource.ManaSource):
-    def __init__(self, match, count):
-        super().__init__(match, count)
-        self.reset()
-        
+class ManaSource(basesource.ManaSource):        
     def shuffle(self):
         """Shuffle all dice in the source."""
         self.match.revealNewInformation()
@@ -36,6 +32,7 @@ class ManaSource(basesource.ManaSource):
         self.changed.emit()
     
     def reset(self):
+        """Reset the source at the beginning of a new round."""
         self.shuffle()
         # Rules: Source must be reshuffled if less than half of the dice show a basic color
         while sum(1 if die.isBasic else 0 for die in self._dice) < self.count / 2:

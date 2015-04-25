@@ -61,7 +61,13 @@ class ActionList(QtCore.QObject):
     def activate(self, match, player, actionId):
         action = self.find(actionId)
         if action is not None:
-            action.method(match, player)
+            import inspect
+            argCount = len(inspect.getargspec(action.method).args) - 1 # -1 because first arg is self
+            if argCount >= 2:
+                action.method(match, player)
+            elif argCount == 1:
+                action.method(match)
+            else: action.method()
             
     def add(self, id, title, method):
         if id in (action.id for action in self._list):

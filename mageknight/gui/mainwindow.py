@@ -80,8 +80,8 @@ class MainWindow(QtWidgets.QWidget):
         
         
         # TODO: remove debugging stuff
-        from mageknight.core import units
-        self.match.currentPlayer.addUnit(units.get('foresters'))
+        #from mageknight.core import units
+        #self.match.currentPlayer.addUnit(units.get('foresters'))
             
         #QtCore.QTimer.singleShot(0, lambda: self.showView('combat'))
         #from mageknight.data import enemies

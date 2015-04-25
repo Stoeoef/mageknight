@@ -41,6 +41,10 @@ class EffectList(QtCore.QObject):
     def remove(self, effect):
         self.match.stack.push(stack.Call(self._remove, effect),
                               stack.Call(self._add, effect))
+    
+    def clear(self):
+        self._list = []
+        self.changed.emit()
         
     def _add(self, effect):
         # first try to combine the effect with an existing one:

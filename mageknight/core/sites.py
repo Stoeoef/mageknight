@@ -64,7 +64,6 @@ class FortifiedSite(SiteOnMap):
             
     def onCombatEnd(self, match, player):
         match.map.setOwner(self, player)
-        player.addFame(sum(e.fame for e in self.enemies))
         match.map.setEnemies(self, [])
     
     

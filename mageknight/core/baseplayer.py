@@ -42,7 +42,7 @@ class Player(QtCore.QObject):
         super().__init__()
         self.match = None
         self.name = name
-        self.hero = hero
+        self.hero = None
         self.tactic = PlayerTactic(Tactic.manaSteal)
         self.level = 1
         self.armor = 2
@@ -56,6 +56,13 @@ class Player(QtCore.QObject):
         self.discardPile = []
         
         self.units = []
+        
+        if hero is not None:
+            self.setHero(hero)
+            
+    def setHero(self, hero):
+        self.hero = hero
+        self.drawPile = hero.getDeedDeck()
     
     @property
     def unitCount(self):
