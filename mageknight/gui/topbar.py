@@ -137,10 +137,17 @@ class CheatBar(QtWidgets.QToolBar):
         action.triggered.connect(self._addMana)
         self.addAction(action)
         
+        action = QtWidgets.QAction('Ca', self)
+        action.triggered.connect(self._drawCard)
+        self.addAction(action)
+        
     def _addMana(self):
         from mageknight.gui import dialogs
         from mageknight.core import effects
         color = dialogs.chooseManaColor(self.match, basic=False)
         if color is not None:
             self.match.effects.add(effects.ManaTokens(color))
-            
+        
+    def _drawCard(self):
+        self.match.currentPlayer.drawCards(1)
+        

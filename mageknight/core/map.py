@@ -32,7 +32,7 @@ class Map(basemap.Map):
         
         self.addTile(Tile('A'), hexcoords.HexCoords(0,0))
         self.addTile(Tile('3'), hexcoords.HexCoords(1,3))
-        self.addTile(Tile('2'), hexcoords.HexCoords(3,2))
+        self.addTile(Tile('4'), hexcoords.HexCoords(3,2))
         
     def addTile(self, tile, coords):
         """Add the tile and put enemy tokens on top of it."""

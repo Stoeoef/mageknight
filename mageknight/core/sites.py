@@ -59,7 +59,7 @@ class FortifiedSite(SiteOnMap):
             match.map.revealEnemies(self)
             match.combat.begin(self.enemies)
         else:
-            if self.owner is player: # TODO: conquer keeps of other players
+            if not isinstance(self, Keep) or self.owner is player: # TODO: conquer keeps of other players
                 if match.state == State.movement: # should always be the case
                     match.actions.add('interact', translate('sites', "Interact"), match.startInteraction)
             
@@ -89,7 +89,16 @@ class Keep(FortifiedSite):
     def __init__(self, match, coords, data):
         super().__init__(match, coords, data)
         self.enemies = [UnknownEnemy(EnemyCategory.keep)]
+        
+        
+class MageTower(FortifiedSite):
+    type = Site.mageTower
     
+    # TODO: allow to buy spells
+    def __init__(self, match, coords, data):
+        super().__init__(match, coords, data)
+        self.enemies = [UnknownEnemy(EnemyCategory.mageTower)]
+
 
 class MagicalGlade(SiteOnMap):
     type = Site.magicalGlade
@@ -130,9 +139,7 @@ class MaraudingOrcs(FortifiedSite):
         if self.isActive:
             raise InvalidAction("Cannot enter a space occupied by marauding orcs.")
         
-    
-        
-    
+
 class Village(SiteOnMap):
     type = Site.village
     
@@ -158,5 +165,5 @@ class Village(SiteOnMap):
         match.effects.add(effects.HealPoints(1))
         
 
-ALL_SITES = (CrystalMines, Keep, MagicalGlade, MaraudingOrcs, Village)
+ALL_SITES = (CrystalMines, Keep, MageTower, MagicalGlade, MaraudingOrcs, Village)
     

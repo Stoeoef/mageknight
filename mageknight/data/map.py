@@ -180,7 +180,7 @@ class Tile:
     def allSites(self):
         """Return a list of tuples (coords, site) for all sites on this tile."""
         sites = []
-        for coords in hexcoords.HexCoords(0, 0).neighbors():
+        for coords in [hexcoords.HexCoords(0, 0)] + hexcoords.HexCoords(0, 0).neighbors():
             site = self.siteAt(coords)
             if site is not Site.none:
                 sites.append((coords, site, self.siteDataAt(coords)))

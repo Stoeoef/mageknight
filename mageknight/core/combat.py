@@ -23,7 +23,7 @@
 import math
 
 from mageknight.data import * # @UnusedWildImport
-from . import basecombat, effects
+from . import basecombat, effects, sites
 
     
 class EnemyInCombat:
@@ -61,6 +61,8 @@ class Combat(basecombat.BaseCombat):
         
         state = self.match.state
         assert state.inCombat
+        site = self.match.map.siteAtPlayer(self.match.currentPlayer)
+        
         if state is State.assignDamage:
             raise InvalidAction("Cannot play effects during assign damage phase.")
         else:
@@ -84,7 +86,10 @@ class Combat(basecombat.BaseCombat):
                     fortificationLevel = 0
                     if any(enemy.fortified for enemy in self.selectedEnemies()):
                         fortificationLevel += 1
-                    # TODO: Increase if site is fortified
+                    if site is not None and isinstance(site, sites.FortifiedSite) \
+                            and any(enemy.enemy in site.enemies for enemy in self.selectedEnemies()):
+                        # Rules: additionally provoked marauding enemies are not fortified
+                        fortificationLevel += 1
                     
                     if fortificationLevel == 2:
                         # Note: We cannot skip this combat state if enemies are twice fortified,
