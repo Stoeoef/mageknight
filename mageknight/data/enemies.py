@@ -25,7 +25,7 @@ import enum
 from mageknight import utils
 from .core import Element
 
-__all__ = ['EnemyCategory', 'Attack', 'Enemy']
+__all__ = ['EnemyCategory', 'Attack', 'Enemy', 'UnknownEnemy']
 
 
 class EnemyCategory(enum.Enum):
@@ -147,3 +147,13 @@ def get(id):
         if id in aDict:
             return Enemy(category, id)
     else: raise ValueError("There is no enemy with id '{}'.".format(id))
+    
+
+class UnknownEnemy:
+    """Represents an unknown enemy of a certain category."""
+    def __init__(self, category):
+        self.category = category
+        
+    def pixmap(self):
+        return self.category.pixmap()
+    

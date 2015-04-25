@@ -24,7 +24,7 @@ from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtCore import Qt
 
 from mageknight import hexcoords, utils
-from mageknight.data import Hero
+from mageknight.data import Hero, Enemy, UnknownEnemy
 
 
 class MapView(QtWidgets.QGraphicsView):
@@ -78,7 +78,7 @@ class MapModel(QtWidgets.QGraphicsScene):
             self.addItem(item)
         else:
             self._siteItems[coords]._update()
-            self._shiftItemsAt(self.coords)
+            self._shiftItemsAt(coords)
     
     def _shiftItemsAt(self, coords):
         """Shift all enemy tokens and persons at the specified hex slightly, so that the user can see that
@@ -99,7 +99,7 @@ class MapModel(QtWidgets.QGraphicsScene):
             if isinstance(item, EnemyItem):
                 pos = QtCore.QPointF(0, 0)
             else: pos = coords.center()
-            item.setPos(coords.center())
+            item.setPos(pos)
             
         elif len(items) > 1:
             for i, item in enumerate(items):
@@ -165,9 +165,9 @@ class SiteItem(QtWidgets.QGraphicsItem):
             item = EnemyItem(enemy)
             self._enemyItems.append(item)
             item.setParentItem(self)
-            
+        
         if self.site.owner is not None:
-            pixmap = utils.getPixmap('mk/players/shield_{}.png'.format(self.site.owner.hero.name))
+            pixmap = utils.getPixmap('mk/players/shield_{}.png'.format(self.site.owner.hero.name.lower()))
             item = QtWidgets.QGraphicsPixmapItem(pixmap)
             # to make sure that the site below remains visible, we do not center the token vertically
             item.setOffset(-pixmap.width()/2, 0)
@@ -184,10 +184,10 @@ class SiteItem(QtWidgets.QGraphicsItem):
 
     
 class EnemyItem(QtWidgets.QGraphicsPixmapItem):
-    """A QGraphicsItem that displays an enemy token. *enemy* may also be an EnemyCategory in which case the 
-    back side of an (unknown) enemy token is displayed."""
+    """A QGraphicsItem that displays an enemy token."""
     def __init__(self, enemy):
         super().__init__()
+        assert isinstance(enemy, (Enemy, UnknownEnemy))
         self.enemy = enemy
         pixmap = enemy.pixmap()
         pixmap = pixmap.scaled(pixmap.width()*0.8, pixmap.height()*0.8,

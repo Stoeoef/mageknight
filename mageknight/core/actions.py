@@ -26,9 +26,10 @@ from mageknight import stack
 
 
 class Action:
-    def __init__(self, id, title):
+    def __init__(self, id, title, method):
         self.id = id
         self.title = title
+        self.method = method
         
         
 class ActionList(QtCore.QObject):
@@ -51,13 +52,24 @@ class ActionList(QtCore.QObject):
     def __getitem__(self, index):
         return self._list[index]
     
-    def add(self, id, title):
+    def find(self, actionId):
+        for action in self._list:
+            if action.id == actionId:
+                return action
+        else: return None
+    
+    def activate(self, match, player, actionId):
+        action = self.find(actionId)
+        if action is not None:
+            action.method(match, player)
+            
+    def add(self, id, title, method):
         if id in (action.id for action in self._list):
             return
         i = 0
         while i < len(self._list) and self._list[i].title < title:
             i += 1
-        action = Action(id, title)
+        action = Action(id, title, method)
         self.match.stack.push(stack.Call(self._insert, i, action),
                               stack.Call(self._remove, action))
     
@@ -76,4 +88,12 @@ class ActionList(QtCore.QObject):
         self._list.remove(action)
         self.changed.emit()
         
-    
+    def clear(self):
+        self.match.stack.push(stack.Call(self._setActions, []),
+                              stack.Call(self._setActions, self._list))
+        
+    def _setActions(self, actionList):
+        self._list = actionList
+        self.changed.emit()
+        
+        

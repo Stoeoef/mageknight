@@ -34,12 +34,15 @@ class ActionList(QtWidgets.QWidget):
         self._update()
         
     def _update(self):
-        for i in range(self.layout.count()):
+        for i in reversed(range(self.layout.count())):
             widget = self.layout.itemAt(i).widget()
             self.layout.removeWidget(widget)
             widget.setParent(None)
             
         for action in self.match.actions:
             button = QtWidgets.QPushButton(action.title)
-            button.clicked.connect(functools.partial(self.match.activateAction, action.id))
+            button.clicked.connect(functools.partial(self._activate, action.id))
             self.layout.addWidget(button)
+            
+    def _activate(self, actionId):
+        self.match.activateAction(actionId)

@@ -22,7 +22,7 @@
 
 import types
 
-from mageknight.data import CancelAction, InvalidAction
+from mageknight.data import State, CancelAction, InvalidAction
 
 
 class EnhancedDecorator:
@@ -57,6 +57,9 @@ def action(f, *states):
           and abort if not.
     """
     def wrapper(self, *args, **kwargs):
+        nonlocal states
+        if len(states) == 1 and not isinstance(states[0], State): # a single list of states
+            states = states[0]
         if len(states) > 0 and self.state not in states:
             print("Cannot perform this action in state '{}'.".format(self.state.name))
             return

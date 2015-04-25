@@ -22,20 +22,8 @@
 
 from mageknight import hexcoords
 from mageknight.data import *  # @UnusedWildImport
-from . import basemap
+from . import basemap, sites
 
-
-class SiteOnMap:
-    def __init__(self, site, coords):
-        self.type = site
-        self.coords = coords
-        self.isActive = True
-        self.enemies = []
-        self.owner = None
-        
-    def __getattr__(self, attr):
-        return getattr(self.site, attr)
-    
 
 class Map(basemap.Map):
     def __init__(self, match, shape):
@@ -43,19 +31,16 @@ class Map(basemap.Map):
         self.resetTerrainCosts()
         
         self.addTile(Tile('A'), hexcoords.HexCoords(0,0))
-        self.addTile(Tile('1'), hexcoords.HexCoords(1,3))
+        self.addTile(Tile('3'), hexcoords.HexCoords(1,3))
         self.addTile(Tile('2'), hexcoords.HexCoords(3,2))
         
     def addTile(self, tile, coords):
         """Add the tile and put enemy tokens on top of it."""
         super().addTile(tile, coords)
         for c, site in tile.allSites():
-            site = SiteOnMap(site, coords + c)
-            if site.type is Site.maraudingOrcs:
-                enemy = self.match.chooseEnemy(EnemyCategory.maraudingOrcs)
-                site.enemies.append(enemy)
-            
-            self.addSite(site)
+            site = sites.create(site, self.match, coords + c)
+            if site is not None: # TODO: remove debugging code
+                self.addSite(site)
     
     def resetTerrainCosts(self):
         """Reset cost of all terrains to their default values."""
@@ -80,6 +65,12 @@ class Map(basemap.Map):
         if terrain in self.terrainCosts: # should always be the case
             self.setTerrainCost(terrain, max(minimum, self.terrainCosts[terrain] - amount))
 
+    def revealEnemies(self, site):
+        self.match.revealNewInformation()
+        enemies = [self.match.chooseEnemy(e.category) if isinstance(e, UnknownEnemy) else e
+                   for e in site.enemies]
+        self._setEnemies(site, enemies)
+        
     def getAdjacentMaraudingEnemies(self, coords):
         return [site for site in self.adjacentSites(coords)
                 if site.type in [Site.maraudingOrcs, Site.draconum]]

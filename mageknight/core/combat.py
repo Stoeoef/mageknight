@@ -49,6 +49,7 @@ class Combat(basecombat.BaseCombat):
     def begin(self, enemies):
         enemies = [EnemyInCombat(enemy) for enemy in enemies]
         self.setEnemies(enemies)
+        self.match.actions.clear()
         self.setState(State.rangeAttack)
         # TODO: reset other stuff?
         for unit in self.match.currentPlayer.units:
@@ -109,13 +110,17 @@ class Combat(basecombat.BaseCombat):
             state = State.attack
         
         self.match.setState(state)
-        if self.match.state == State.combatEnd:
+        if self.match.state != State.combatEnd:
+            # If only one enemy is active, select it
+            activeEnemies = [e for e in self.enemies if self.isEnemyActive(e)]
+            if len(activeEnemies) == 1:
+                self.setEnemySelected(activeEnemies[0], True)
+        else:
+            # Combat end
             self.setEnemies([])
-            
-        # If only one enemy is active, select it
-        activeEnemies = [e for e in self.enemies if self.isEnemyActive(e)]
-        if len(activeEnemies) == 1:
-            self.setEnemySelected(activeEnemies[0], True)
+            site = self.match.map.siteAtPlayer(self.match.currentPlayer)
+            if site is not None:
+                site.onCombatEnd(self.match, self.match.currentPlayer)
     
     def isEnemyActive(self, enemy):
         """Return whether the given enemy can be targeted in the current phase

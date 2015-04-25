@@ -128,8 +128,25 @@ class Map(QtCore.QObject):
         self.persons[person] = coords
         self.personChanged.emit(person)
 
+    def setEnemies(self, site, enemies):
+        self.match.stack.push(stack.Call(self._setEnemies, site, enemies),
+                              stack.Call(self._setEnemies, site, site.enemies))
+        
     def _addEnemy(self, site, enemy):
         site.enemies.append(enemy)
+        self.siteChanged.emit(site.coords)
+        
+    def _setEnemies(self, site, enemies):
+        site.enemies = enemies
+        self.siteChanged.emit(site.coords)
+        
+    def setOwner(self, site, player):
+        if site.owner != player:
+            self.match.stack.push(stack.Call(self._setOwner, site, player),
+                                  stack.Call(self._setOwner, site, site.owner))
+    
+    def _setOwner(self, site, player):
+        site.owner = player
         self.siteChanged.emit(site.coords)
         
     def setTerrainCost(self, terrain, cost):

@@ -152,7 +152,7 @@ class Match(QtCore.QObject):
         if len(options) == 1 and options[0][0] != 'crystal': # always ask before using crystals
             type, color, _ = options[0]
         else:            
-            type, color, _ = dialogs.choose(options, label=lambda t: t[2], title=self.tr("Pay mana"))
+            type, color, _ = dialogs.choose(options, labelFunc=lambda t: t[2], title=self.tr("Pay mana"))
         if type == 'token':
             self.effects.remove(effects.ManaTokens(color))
         elif type == 'die':
@@ -227,13 +227,19 @@ class Match(QtCore.QObject):
         terrain = self.map.terrainAt(coords)
         if terrain is None or not self.map.isTerrainPassable(terrain):
             raise InvalidAction("This field is not passable")
-        site = self.map.siteAt(coords) # returns only active sites
-        if site is not None:
-            if site.type in [Site.maraudingOrcs, Site.draconum]:
-                raise InvalidAction("Cannot enter a field occupied by a marauding enemy.")
         
         self.payMovePoints(self.map.terrainCosts[terrain])
+        self.actions.clear()
         self.map.movePerson(player, coords)
+        
+        # Site
+        site = self.map.siteAt(coords) # returns only active sites
+        if site is not None:
+            site.onEnter(self, self.currentPlayer)
+        for site in self.map.adjacentSites(coords):
+            site.onAdjacent(self, self.currentPlayer)
+        
+        # Marauding enemies
         oldEnemies = set(self.map.getAdjacentMaraudingEnemies(pos))
         newEnemies = set(self.map.getAdjacentMaraudingEnemies(coords))
         if len(oldEnemies.intersection(newEnemies)) > 0:
@@ -242,8 +248,20 @@ class Match(QtCore.QObject):
                 enemies.extend(site.enemies)
             self.combat.begin(enemies)
         elif len(self.map.getAdjacentMaraudingEnemies(coords)) > 0:
-            self.actions.add('marauding', self.tr("Fight marauding enemies"))
+            self.actions.add('marauding', self.tr("Fight marauding enemies"), None) # TODO: insert method
         else: self.actions.remove('marauding') 
+        
+    
+    def startInteraction(self):
+        if self.state is not State.movement:
+            raise InvalidAction("Cannot start interaction now.")
+        self.actions.clear()
+        modifier = self.currentPlayer.reputationModifier
+        if modifier == 'X':
+            raise InvalidAction("Nobody wants to interact with you!")
+        self.setState(State.interaction)
+        if modifier != 0:
+            self.effects.add(effects.InfluencePoints(modifier))
         
     @action
     def activateUnit(self, player, unit, action):
@@ -261,12 +279,14 @@ class Match(QtCore.QObject):
         
     @action(State.interaction)
     def recruitUnit(self, player, unit):
-        # TODO: check for interaction
-        if not self.map.siteAtPlayer(player) in unit.sites:
+        if self.state is not State.interaction:
+            raise InvalidAction("Cannot recruit units outside of interaction.")
+        site = self.map.siteAtPlayer(player)
+        if site is None or not site.type in unit.sites:
             raise InvalidAction("Cannot recruit unit at this place.")
         if player.unitLimit <= player.unitCount:
             unitToDisband = dialogs.choose(player.units,
-                                           label=self.tr("All slots occupied. Choose a unit to disband."))
+                                           text=self.tr("All slots occupied. Choose a unit to disband."))
             player.removeUnit(unitToDisband)
         self.payInfluencePoints(unit.cost)
         self.shop.takeUnit(unit)
@@ -290,5 +310,5 @@ class Match(QtCore.QObject):
         
     @action
     def activateAction(self, player, actionId):
-        print(actionId)
+        self.actions.activate(self, player, actionId)
         
