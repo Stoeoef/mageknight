@@ -110,3 +110,9 @@ def chooseCard(player, type=None, allowWounds=False):
     if len(cards) > 0:
         return choose(cards)
     else: raise InvalidAction("You don't have a suitable card")
+    
+
+def ask(question, title=''):
+    button = QtWidgets.QMessageBox.question(mainwindow.mainWindow, title, question)
+    return button == QtWidgets.QMessageBox.Yes    
+

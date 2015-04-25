@@ -76,6 +76,7 @@ class Match(QtCore.QObject):
         site = self.map.siteAtPlayer(self.currentPlayer)
         if site is not None:
             site.onBeginOfTurn(self, self.currentPlayer)
+            site.onEnter(self, self.currentPlayer)
         self.revealNewInformation() # clear stack
         
     def endTurn(self):

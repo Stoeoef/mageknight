@@ -138,6 +138,11 @@ class Village(SiteOnMap):
         super().__init__(match, coords, data)
         self.plundered = False
     
+    def onBeginOfTurn(self, match, player):
+        if dialogs.ask(translate('sites', "Do you wish to plunder the village?")):
+            player.drawCards(2)
+            player.addReputation(-1)
+        
     def onEnter(self, match, player):
         if match.state == State.movement: # should always be the case
             match.actions.add('interact', translate('sites', "Interact"), self.interact)
