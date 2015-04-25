@@ -123,6 +123,7 @@ class ButtonBar(QtWidgets.QToolBar):
 class CheatBar(QtWidgets.QToolBar):
     def __init__(self, match):
         super().__init__()
+        self.match = match
         import functools
         from mageknight.core import effects
         for pointsType in [effects.MovePoints, effects.InfluencePoints,
@@ -131,4 +132,15 @@ class CheatBar(QtWidgets.QToolBar):
             action = QtWidgets.QAction(effect.title[:2], self)
             action.triggered.connect(functools.partial(match.effects.add, effect))
             self.addAction(action)
+            
+        action = QtWidgets.QAction('Ma', self)
+        action.triggered.connect(self._addMana)
+        self.addAction(action)
+        
+    def _addMana(self):
+        from mageknight.gui import dialogs
+        from mageknight.core import effects
+        color = dialogs.chooseManaColor(self.match, basic=False)
+        if color is not None:
+            self.match.effects.add(effects.ManaTokens(color))
             

@@ -88,7 +88,7 @@ def chooseManaColor(match=None, available=False, basic=True, fromList=None):
             if len(colors) == 0:
                 raise InvalidAction("You don't have mana")
         else:
-            colors = Mana.basicColors()
+            colors = Mana.basicColors() if basic else list(Mana)
         
     # remove duplicates
     colorOptions = []
