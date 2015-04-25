@@ -42,8 +42,15 @@ class EnemyCategory(enum.Enum):
         return utils.getPixmap('mk/enemies/{}_back.png'.format(self.name))
     
     def all(self):
-        """Return all enemies from this category. The resulting list contains each enemy once."""
-        return [Enemy(self, id) for id in Enemy._enemyData[self].keys()]
+        """Return all enemies from this category. List enemies multiple times according to the 'count'
+        attribute."""
+        enemies = []
+        for id in Enemy._enemyData[self].keys():
+            enemy = Enemy(self, id)
+            enemies.append(enemy)
+            if enemy.count > 1:
+                enemies.extend(Enemy(self, id) for _ in range(enemy.count-1))
+        return enemies
    
     
 class Attack:

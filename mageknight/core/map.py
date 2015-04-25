@@ -31,8 +31,8 @@ class Map(basemap.Map):
         self.resetTerrainCosts()
         
         self.addTile(Tile('A'), hexcoords.HexCoords(0,0))
-        self.addTile(Tile('3'), hexcoords.HexCoords(1,3))
-        self.addTile(Tile('4'), hexcoords.HexCoords(3,2))
+        self.addTile(Tile('5'), hexcoords.HexCoords(1,3))
+        self.addTile(Tile('6'), hexcoords.HexCoords(3,2))
         
     def addTile(self, tile, coords):
         """Add the tile and put enemy tokens on top of it."""
@@ -67,8 +67,10 @@ class Map(basemap.Map):
 
     def revealEnemies(self, site):
         self.match.revealNewInformation()
-        enemies = [self.match.chooseEnemy(e.category) if isinstance(e, UnknownEnemy) else e
-                   for e in site.enemies]
+        # note: one of the following two lists should be empty. Thus no problems with changing the order
+        enemies = [e for e in site.enemies if not isinstance(e, UnknownEnemy)]
+        unknownEnemies = [e.category for e in site.enemies if isinstance(e, UnknownEnemy)]
+        enemies.extend(self.match.chooseEnemies(unknownEnemies))
         self._setEnemies(site, enemies)
         
     def getAdjacentMaraudingEnemies(self, coords):

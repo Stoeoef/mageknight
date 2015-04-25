@@ -68,9 +68,26 @@ class FortifiedSite(SiteOnMap):
             match.map.revealEnemies(self)
             
     def onCombatEnd(self, match, player):
-        match.map.setOwner(self, player)
-        match.map.setEnemies(self, [])
+        # Rules: additional marauding enemies must not be considered here
+        remainingEnemies = [enemy for enemy in match.combat.remainingEnemies() if enemy in self.enemies]
+        if len(remainingEnemies) == 0:
+            match.map.setOwner(self, player)
+        # TODO: redrawal 
+        match.map.setEnemies(self, remainingEnemies)
     
+    
+class AdventureSite(SiteOnMap):
+    def onEnter(self, match, player):
+        if self.owner is None or self.canReenter:
+            match.actions.add('enter', translate('sites', "Enter"), self.enter)
+            
+    def onCombatEnd(self, match, player):
+        # note: owner does not change when a dungeon/tomb is reentered
+        if len(match.combat.remainingEnemies()) == 0 and self.owner is None:
+            match.map.setOwner(self, player)
+            # TODO: gain reward
+        match.map.setEnemies(self, [])
+
 
 class CrystalMines(SiteOnMap):
     type = Site.crystalMines
@@ -81,7 +98,17 @@ class CrystalMines(SiteOnMap):
         
     def onEndOfTurn(self, match, player):
         player.addCrystal(self.color)
+        
     
+class Dungeon(AdventureSite):
+    type = Site.dungeon
+    canReenter = True
+    
+    def enter(self, match, player):
+        # TODO: night rules, no units, reenter
+        enemies = match.chooseEnemies([EnemyCategory.draconum])
+        match.combat.begin(enemies)
+        
 
 class Keep(FortifiedSite):
     type = Site.keep
@@ -94,7 +121,7 @@ class Keep(FortifiedSite):
 class MageTower(FortifiedSite):
     type = Site.mageTower
     
-    # TODO: allow to buy spells
+    # TODO: allow to buy spells, gain a spell
     def __init__(self, match, coords, data):
         super().__init__(match, coords, data)
         self.enemies = [UnknownEnemy(EnemyCategory.mageTower)]
@@ -133,12 +160,70 @@ class MaraudingOrcs(FortifiedSite):
     
     def __init__(self, match, coords, data):
         super().__init__(match, coords, data)
-        self.enemies = [match.chooseEnemy(EnemyCategory.maraudingOrcs)]
+        self.enemies = match.chooseEnemies([EnemyCategory.maraudingOrcs])
         
     def onEnter(self, match, player):
         if self.isActive:
             raise InvalidAction("Cannot enter a space occupied by marauding orcs.")
         
+        
+class Monastery(SiteOnMap):
+    type = Site.monastery
+    
+    def onEnter(self, match, player):
+        if self.owner is None and match.state == State.movement: # should always be the case
+            match.actions.add('interact', translate('sites', "Interact"), self.interact)
+            match.actions.add('burn', translate('sites', "Burn monastery"), self.burn)
+        
+    def interact(self, match, player):
+        match.startInteraction()
+        match.actions.add('heal', translate('sites', "Buy healing"), self.heal)
+        
+    def heal(self, match, player):
+        match.payInfluencePoints(2)
+        match.effects.add(effects.HealPoints(1))
+        
+    def burn(self, match, player):
+        player.addReputation(-3)
+        enemies = match.chooseEnemies([EnemyCategory.mageTower])
+        match.map.setEnemies(self, enemies)
+        match.combat.begin(self.enemies) # TODO: no units
+        match.revealNewInformation()
+        
+    def onCombatEnd(self, match, player):
+        if len(match.combat.remainingEnemies()) == 0:
+            match.map.setOwner(self, player)
+            # TODO: gain an artifact
+        match.map.setEnemies(self, [])
+    
+
+class MonsterDen(AdventureSite):
+    type = Site.monsterDen
+    canReenter = False
+            
+    def enter(self, match, player):
+        enemies = match.chooseEnemies([EnemyCategory.dungeon])
+        match.combat.begin(enemies)
+        
+
+class SpawningGrounds(AdventureSite):
+    type = Site.spawningGrounds
+    canReenter = False
+            
+    def enter(self, match, player):
+        enemies = match.chooseEnemies([EnemyCategory.dungeon, EnemyCategory.dungeon])
+        match.combat.begin(enemies)
+        
+
+class Tomb(AdventureSite):
+    type = Site.tomb
+    canReenter = True
+    
+    def enter(self, match, player):
+        # TODO: night rules, no units, reenter
+        enemies = match.chooseEnemies([EnemyCategory.draconum])
+        match.combat.begin(enemies)    
+
 
 class Village(SiteOnMap):
     type = Site.village
@@ -153,8 +238,7 @@ class Village(SiteOnMap):
             player.addReputation(-1)
         
     def onEnter(self, match, player):
-        if match.state == State.movement: # should always be the case
-            match.actions.add('interact', translate('sites', "Interact"), self.interact)
+        match.actions.add('interact', translate('sites', "Interact"), self.interact)
         
     def interact(self, match, player):
         match.startInteraction()
@@ -165,5 +249,6 @@ class Village(SiteOnMap):
         match.effects.add(effects.HealPoints(1))
         
 
-ALL_SITES = (CrystalMines, Keep, MageTower, MagicalGlade, MaraudingOrcs, Village)
+ALL_SITES = (CrystalMines, Dungeon, Keep, MageTower, MagicalGlade, MaraudingOrcs,
+             Monastery, MonsterDen, SpawningGrounds, Tomb, Village)
     

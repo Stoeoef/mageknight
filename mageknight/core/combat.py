@@ -122,10 +122,13 @@ class Combat(basecombat.BaseCombat):
                 self.setEnemySelected(activeEnemies[0], True)
         else:
             # Combat end
-            self.setEnemies([])
             site = self.match.map.siteAtPlayer(self.match.currentPlayer)
-            if site is not None:
+            if site is not None: # note: self.remainingEnemies must still work here
                 site.onCombatEnd(self.match, self.match.currentPlayer)
+            self.setEnemies([])
+    
+    def remainingEnemies(self):
+        return [enemy.enemy for enemy in self.enemies if enemy.isAlive]
     
     def isEnemyActive(self, enemy):
         """Return whether the given enemy can be targeted in the current phase

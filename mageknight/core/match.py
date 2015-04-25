@@ -202,11 +202,22 @@ class Match(QtCore.QObject):
         if cost > 0:
             self.effects.remove(effects.InfluencePoints(cost))
 
-    def chooseEnemy(self, category):
+    def chooseEnemies(self, categories):
+        all = {}
+        for category in categories:
+            if category not in all:
+                all[category] = category.all()
+                    
+        # draw enemies
         enemies = []
-        for enemy in category.all():
-            enemies.extend([enemy] * enemy.count)
-        return random.choice(enemies)
+        for category in categories:
+            if len(all[category]) > 0:
+                index = random.randint(0, len(all[category])-1)
+                enemies.append(all[category].pop(index))
+            else:
+                # more enemies requested as exist, should not happen
+                enemies.extend(self.chooseEnemies([category])) # use default distribution
+        return enemies
         
     @action
     def playCard(self, player, card, effectIndex=0):
