@@ -49,6 +49,7 @@ class SiteOnMap:
     def onCombatEnd(self, match, player): pass
     def onBeginOfTurn(self, match, player): pass
     def onEndOfTurn(self, match, player): pass
+    def updateActions(self, match, player): pass
     
     def onEnemyKilled(self, match, player, enemy):
         match.map.removeEnemy(self, enemy)
@@ -61,10 +62,11 @@ class FortifiedSite(SiteOnMap):
             player.addReputation(-1)
             match.map.revealEnemies(self)
             match.combat.begin(self, maraudersProvokable=True)
-        else:
-            if not isinstance(self, Keep) or self.owner is player: # TODO: conquer keeps of other players
-                if match.state == State.movement: # should always be the case
-                    match.actions.add('interact', translate('sites', "Interact"), match.startInteraction)
+        # TODO: conquer keeps of other players
+    
+    def updateActions(self, match, player):
+        if self.owner == player and match.state == State.movement:
+            match.actions.add('interact', translate('sites', "Interact"), match.startInteraction)
             
     def onAdjacent(self, match, player):
         if self.owner is None and match.round.type is RoundType.day:
@@ -77,7 +79,7 @@ class FortifiedSite(SiteOnMap):
     
     
 class AdventureSite(SiteOnMap):
-    def onEnter(self, match, player):
+    def updateActions(self, match, player):
         if self.owner is None or self.canReenter:
             match.actions.add('enter', translate('sites', "Enter"), self.enter)
             
@@ -190,8 +192,8 @@ class MaraudingOrcs(SiteOnMap):
 class Monastery(SiteOnMap):
     type = Site.monastery
     
-    def onEnter(self, match, player):
-        if self.owner is None and match.state == State.movement: # should always be the case
+    def updateActions(self, match, player):
+        if self.owner is None and match.state == State.movement:
             match.actions.add('interact', translate('sites', "Interact"), self.interact)
             match.actions.add('burn', translate('sites', "Burn monastery"), self.burn)
         
@@ -258,7 +260,7 @@ class Village(SiteOnMap):
             player.drawCards(2)
             player.addReputation(-1)
         
-    def onEnter(self, match, player):
+    def updateActions(self, match, player):
         match.actions.add('interact', translate('sites', "Interact"), self.interact)
         
     def interact(self, match, player):

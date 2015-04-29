@@ -72,7 +72,6 @@ class Match(QtCore.QObject):
                     
     def beginTurn(self):
         self.setState(State.movement)
-        self.updateActions()
         site = self.map.siteAtPlayer(self.currentPlayer)
         if site is not None:
             site.onBeginOfTurn(self, self.currentPlayer)
@@ -94,6 +93,7 @@ class Match(QtCore.QObject):
         if state != self.state:
             self.stack.push(stack.Call(self._setState, state),
                             stack.Call(self._setState, self.state))
+            self.updateActions()
     
     def _setState(self, state):
         if state != self.state:
@@ -272,13 +272,13 @@ class Match(QtCore.QObject):
             raise InvalidAction("This field is not passable")
         
         self.payMovePoints(self.map.terrainCosts[terrain])
-        self.updateActions()
         self.map.movePerson(player, coords)
         
         # Site
         site = self.map.siteAt(coords) # returns only active sites
         if site is not None:
             site.onEnter(self, self.currentPlayer)
+        self.updateActions()
         for site in self.map.adjacentSites(coords):
             site.onAdjacent(self, self.currentPlayer)
 
@@ -313,13 +313,15 @@ class Match(QtCore.QObject):
     
     def updateActions(self):
         self.actions.clear()
-        if not self.state.inCombat:
+        site = self.map.siteAt(self.map.persons[self.currentPlayer]) # TODO: improve this
+        if site is not None:
+            site.updateActions(self, self.currentPlayer)
+        if self.state in [State.movement, State.interaction, State.combatEnd]:
             self.actions.add('endturn', self.tr("End turn"), self.endTurn)
     
     def startInteraction(self):
         if self.state is not State.movement:
             raise InvalidAction("Cannot start interaction now.")
-        self.updateActions()
         modifier = self.currentPlayer.reputationModifier
         if modifier is REPUTATION_NONE:
             raise InvalidAction("Nobody wants to interact with you!")
