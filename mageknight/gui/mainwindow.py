@@ -78,9 +78,6 @@ class MainWindow(QtWidgets.QWidget):
         # Show combat view automatically if combat starts
         self.match.combat.combatStarted.connect(lambda: self.showView('combat'))
         
-        from mageknight.core import units
-        self.match.players[0].addUnit(units.get('foresters'))
-        
     def availableViews(self):
         """Return a list of (view id, view title)-tuples for all available views. Views are popup windows
         offer additional game information (e.g. the fame board)."""

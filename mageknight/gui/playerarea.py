@@ -94,7 +94,7 @@ class PlayerAreaScene(QtWidgets.QGraphicsScene):
                 self.units.addItem(UnitSlot(self.player, self.units.objectSize))
             
     def unitClicked(self, unit, ability):
-        if ability is not None:
+        if ability is not None or unit.isWounded:
             self.match.activateUnit(unit, ability)
 
 

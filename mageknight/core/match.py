@@ -201,6 +201,12 @@ class Match(QtCore.QObject):
             raise InvalidAction("Not enough influence points")
         if cost > 0:
             self.effects.remove(effects.InfluencePoints(cost))
+            
+    def payHealPoints(self, cost):
+        if self.effects.healPoints < cost:
+            raise InvalidAction("Not enough heal points")
+        if cost > 0:
+            self.effects.remove(effects.HealPoints(cost))
 
     def chooseEnemies(self, categories):
         all = {}
@@ -224,8 +230,8 @@ class Match(QtCore.QObject):
         """Play the given card. For cards with several actions, *effectIndex* determines which action
         to play (e.g. 0 for basic effect and 1 for strong effect of action cards).
         """
-        self.checkEffectPlayable(type=card.effectType)
         if isinstance(card, cards.ActionCard):
+            self.checkEffectPlayable(type=card.effectType)
             if effectIndex == 0:
                 if DISCARD_CARDS:
                     player.discard(card)
@@ -237,6 +243,10 @@ class Match(QtCore.QObject):
                 card.strongEffect(self, player)
             else: raise ValueError("Invalid effect number for card '{}': {}".format(card.name, effectIndex))
         
+        elif card.isWound:
+            self.payHealPoints(1)
+            self.currentPlayer.removeCard(card)
+            
     def sidewaysEffects(self):
         """Return all effects that can be achieved by playing a card sideways (might change due to skills).
         """
@@ -252,9 +262,12 @@ class Match(QtCore.QObject):
         """Play the given card sideways. *effectIndex* is the index of the desired effect from
         self.sidewaysEffects()."""
         # No need to call checkEffectPlayable, because it will be called by effects.add.
-        effect = self.sidewaysEffects()[effectIndex]
-        player.discard(card)
-        self.effects.add(effect)
+        if not card.isWound:
+            effect = self.sidewaysEffects()[effectIndex]
+            player.discard(card)
+            self.effects.add(effect)
+        else:
+            raise InvalidAction("Cannot play wounds sideways.")
         
     @action(State.movement)
     def movePlayer(self, player, coords):
@@ -332,17 +345,19 @@ class Match(QtCore.QObject):
     @action
     def activateUnit(self, player, unit, ability):
         assert isinstance(unit, units.Unit)
-        assert ability in unit.abilities
-        self.checkEffectPlayable() # TODO action type
-        if not unit.isReady:
-            raise InvalidAction("This unit is spent.")
-        if unit.isWounded:
-            raise InvalidAction("This unit is wounded.")
-        if ability.cost is not None:
-            self.payMana(ability.cost)
-        ability.activate(unit, self, player)
-        player.spendUnit(unit)
-        
+        if not unit.isWounded:
+            assert ability in unit.abilities
+            self.checkEffectPlayable() # TODO action type
+            if not unit.isReady:
+                raise InvalidAction("This unit is spent.")
+            if ability.cost is not None:
+                self.payMana(ability.cost)
+            ability.activate(unit, self, player)
+            player.spendUnit(unit)
+        else:
+            self.payHealPoints(unit.level)
+            player.healUnit(unit)
+            
     @action(State.interaction)
     def recruitUnit(self, player, unit):
         if self.state is not State.interaction:

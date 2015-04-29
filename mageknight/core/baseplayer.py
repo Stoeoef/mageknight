@@ -232,6 +232,11 @@ class Player(QtCore.QObject):
         assert wounds in (1, 2)
         unit.wounds = wounds
         self.unitsChanged.emit()
+    
+    def healUnit(self, unit):
+        assert unit.isWounded
+        self.match.stack.push(stack.Call(self._healUnit, unit, 1),
+                              stack.Call(self._woundUnit, unit, 1))
         
     def _healUnit(self, unit, wounds):
         assert unit.wounds >= wounds

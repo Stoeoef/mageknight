@@ -23,7 +23,7 @@
 from PyQt5 import QtCore
 
 from mageknight import stack
-from .effects import MovePoints, InfluencePoints
+from .effects import MovePoints, InfluencePoints, HealPoints
 
 
 class EffectList(QtCore.QObject):
@@ -106,3 +106,8 @@ class EffectList(QtCore.QObject):
     @property
     def influencePoints(self):
         return sum(e.points for e in self._list if isinstance(e, InfluencePoints))
+    
+    @property
+    def healPoints(self):
+        return sum(e.points for e in self._list if isinstance(e, HealPoints))
+    
