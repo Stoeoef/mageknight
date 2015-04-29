@@ -25,7 +25,7 @@ import enum
 from mageknight import hexcoords, utils
 from .core import Mana
 
-__all__ = ['MapShape', 'Terrain', 'Site', 'Tile']
+__all__ = ['MapShape', 'Terrain', 'Site', 'TileType', 'TilePileState', 'Tile']
 
 
 class MapShape(enum.Enum):
@@ -72,6 +72,20 @@ class Site(enum.Enum):
     tomb = 13
     ancientRuins = 14
     city = 15 # TODO: color?
+    
+
+class TileType(enum.Enum):
+    countrySide = 1
+    core = 2
+    city = 3
+    special = 4
+    
+    
+class TilePileState(enum.Enum):
+    countrySide = 1
+    core = 2
+    rest = 3
+    empty = 4
     
     
 class Tile:
@@ -150,6 +164,12 @@ class Tile:
         self.id = id
         self.orientation = orientation # TODO: Implement rotated tiles
         
+    def __eq__(self, other):
+        return self.id == other.id
+    
+    def __ne__(self, other):
+        return self.id != other.id
+        
     def pixmap(self):
         """Return the pixmap of this tile."""
         return utils.getPixmap('mk/tiles/tile-{}.png'.format(self.id))
@@ -185,4 +205,19 @@ class Tile:
             if site is not Site.none:
                 sites.append((coords, site, self.siteDataAt(coords)))
         return sites
+    
+    @staticmethod
+    def allTiles(type):
+        """Return a list of all tiles of the given TileType."""
+        if type is TileType.countrySide:
+            ids = [id for id in Tile._terrains.keys() if id.isdigit()]
+        elif type is TileType.core:
+            ids = [id for id, terrains in Tile._terrains.items()
+                        if id.startswith('c') and Terrain.city not in terrains]
+        elif type is TileType.city:
+            ids = [id for id, terrains in Tile._terrains.items()
+                        if id.startswith('c') and Terrain.city in terrains]
+        else:
+            ids = ['A', 'B']
+        return [Tile(id) for id in ids]
         

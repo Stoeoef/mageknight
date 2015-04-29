@@ -85,6 +85,8 @@ class LocalMatchClient(Adapter):
     def assignDamageToUnit(self, unit): pass
     @action
     def activateAction(self, actionId): pass
+    @action
+    def explore(self, coords): pass
 
         
 class ManaSourceAdapter(Adapter):

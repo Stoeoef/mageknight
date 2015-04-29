@@ -44,6 +44,7 @@ class State(enum.Enum):
     movement = 1     # movement phase
     interaction = 2  # 
     combatEnd = 3    # after a combat, before end of turn. User may play special effects and healing.
+    explore = 4      # while choosing a new tile location
     
     # Combat states
     provokeMarauders = 10 # "invite" additional enemies at the beginning of a fight

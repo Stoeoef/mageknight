@@ -20,11 +20,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt
 
 from mageknight import hexcoords, utils
-from mageknight.data import Hero, Enemy, UnknownEnemy
+from mageknight.data import * # @UnusedWildImport
 
 
 class MapView(QtWidgets.QGraphicsView):
@@ -52,7 +52,9 @@ class MapModel(QtWidgets.QGraphicsScene):
         self.map = match.map
         self._personItems = {}
         self._siteItems = {}
+        self._exploreItems = []
         
+        self.match.stateChanged.connect(self._stateChanged)
         self.map.tileAdded.connect(self._tileAdded)
         self.map.siteChanged.connect(self._siteChanged)
         self.map.personChanged.connect(self._personChanged)
@@ -86,6 +88,17 @@ class MapModel(QtWidgets.QGraphicsScene):
             site = self.map.sites[coords]
             self._siteItems[coords]._update()
             self._shiftItemsAt(coords)
+            
+    def _stateChanged(self, state):
+        for item in self._exploreItems:
+            self.removeItem(item)
+        self._exploreItems = []
+        if state is State.explore:
+            coords = self.map.persons[self.match.currentPlayer]
+            tiles = self.map.getExplorableTiles(coords)
+            for tile in tiles:
+                item = ExploreItem(tile)
+                self.addItem(item)
     
     def _shiftItemsAt(self, coords):
         """Shift all enemy tokens and persons at the specified hex slightly, so that the user can see that
@@ -140,7 +153,9 @@ class MapModel(QtWidgets.QGraphicsScene):
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
         coords = hexcoords.HexCoords.fromPixel(event.scenePos())
-        self.match.movePlayer(coords)
+        if self.match.state is State.explore:
+            self.match.explore(coords)
+        else: self.match.movePlayer(coords)
 
 
 class TileItem(QtWidgets.QGraphicsPixmapItem):
@@ -226,4 +241,35 @@ class PersonItem(QtWidgets.QGraphicsPixmapItem):
         """Move the PersonItem to the specified hex."""
         self.coords = coords
         self.setPos(coords.center())
+        
+
+class ExploreItem(QtWidgets.QGraphicsItem):
+    """This item is used to highlight explorable tiles during State.explore."""
+    RECT = None
+    
+    def __init__(self, coords):
+        super().__init__()
+        self.setPos(coords.center())
+        if ExploreItem.RECT is None:
+            ExploreItem.RECT = QtCore.QRectF(0, 0, hexcoords.ALTITUDE * 6, hexcoords.SIDE * 5)
+            ExploreItem.RECT.translate(-ExploreItem.RECT.center())
+        
+    def boundingRect(self):
+        return ExploreItem.RECT
+        rect = QtCore.QRectF(0, 0, ExploreItem.SIZE.width(), ExploreItem.SIZE.height())
+        rect = rect.translated(-3*hexcoords.ALTITUDE, -2.5*hexcoords.SIDE) # position of top left corner
+        return rect
+        
+    def paint(self, painter, option, widget):
+        coords0 = hexcoords.HexCoords(0, 0)
+        points = [0.9 * point for point in coords0.corners()]
+        for coords in [coords0] + coords0.neighbors():
+            if coords == coords0:
+                painter.setBrush(QtGui.QBrush(utils.color("065f93")))
+            else: painter.setBrush(QtGui.QBrush(utils.color("44b5f5")))
+                
+            painter.translate(coords.center())
+            painter.drawPolygon(*points)
+            painter.translate(-coords.center())
+        
         

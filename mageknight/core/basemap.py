@@ -174,7 +174,7 @@ class Map(QtCore.QObject):
         
 def isTileCenter(coords):
     """Return whether *coords* are the coordinates of the center hex of a tile."""
-    # tile centers are coordinates of the form n * (2,-1) + m * (1,3) with n,m ∈ ℕ
+    # tile centers are coordinates of the form n * (2,-1) + m * (1,3) with m,n ∈ ℤ
     # a little calculation leads to these conditions
     return (3*coords.x - coords.y) % 7 == 0 and (coords.x + 2*coords.y) % 7 == 0
 

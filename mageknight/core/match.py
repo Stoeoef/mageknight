@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # 
 
-import random
+import random, functools
 
 from PyQt5 import QtCore
 
@@ -46,7 +46,7 @@ class Match(QtCore.QObject):
         self.state = None
         self.players = players
         self.source = source.ManaSource(self, len(self.players)+2)
-        self.map = map.Map(self, MapShape.wedge)
+        self.map = map.Map.create(self, MapShape.wedge)
         self.effects = effectlist.EffectList(self)
         self.shop = shop.Shop(self)
         self.combat = combat.Combat(self)
@@ -274,7 +274,7 @@ class Match(QtCore.QObject):
         self.payMovePoints(self.map.terrainCosts[terrain])
         self.updateActions()
         self.map.movePerson(player, coords)
-              
+        
         # Site
         site = self.map.siteAt(coords) # returns only active sites
         if site is not None:
@@ -296,7 +296,11 @@ class Match(QtCore.QObject):
         elif len(newMarauderSites) > 0:
             self.actions.add('marauding', self.tr("Fight marauding enemies"), self.fightMaraudingEnemies)
         else: self.actions.remove('marauding')
-      
+        
+        # Explore
+        if self.state is State.movement and self.map.canExplore(coords):
+            self.actions.add('explore', self.tr("Explore"),
+                             functools.partial(self.setState, State.explore))
     
     def fightMaraudingEnemies(self):
         coords = self.map.persons[self.currentPlayer]
@@ -372,3 +376,14 @@ class Match(QtCore.QObject):
     def activateAction(self, player, actionId):
         self.actions.activate(self, player, actionId)
         
+    @action(State.explore)
+    def explore(self, player, coords):
+        self.payMovePoints(2)
+        self.map.explore(coords)
+        self.setState(State.movement)
+        
+        # Some of the new sites might be adjacent to players (not necessarily to the current player)
+        for site in self.map.adjacentSites(coords): # sites on outside fields of new tile
+            for player in self.players:
+                if site.coords.isNeighborOf(self.map.persons[player]):
+                    site.onAdjacent(self, player)
