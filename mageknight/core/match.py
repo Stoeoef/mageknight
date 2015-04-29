@@ -330,17 +330,17 @@ class Match(QtCore.QObject):
             self.effects.add(effects.InfluencePoints(modifier))
         
     @action
-    def activateUnit(self, player, unit, action):
+    def activateUnit(self, player, unit, ability):
         assert isinstance(unit, units.Unit)
-        assert action in unit.actions
+        assert ability in unit.abilities
         self.checkEffectPlayable() # TODO action type
         if not unit.isReady:
             raise InvalidAction("This unit is spent.")
         if unit.isWounded:
             raise InvalidAction("This unit is wounded.")
-        if action.cost is not None:
-            self.payMana(action.cost)
-        unit.activate(action, self, player)
+        if ability.cost is not None:
+            self.payMana(ability.cost)
+        ability.activate(unit, self, player)
         player.spendUnit(unit)
         
     @action(State.interaction)

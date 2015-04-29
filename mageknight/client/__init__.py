@@ -72,7 +72,7 @@ class LocalMatchClient(Adapter):
     @action
     def movePlayer(self, coords): pass
     @action
-    def activateUnit(self, unit, action): pass 
+    def activateUnit(self, unit, ability): pass 
     @action
     def recruitUnit(self, unit): pass
     @action

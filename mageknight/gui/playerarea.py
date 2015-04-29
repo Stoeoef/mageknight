@@ -93,9 +93,9 @@ class PlayerAreaScene(QtWidgets.QGraphicsScene):
             for _ in range(-slotDifference):
                 self.units.addItem(UnitSlot(self.player, self.units.objectSize))
             
-    def unitClicked(self, unit, action):
-        if action is not None:
-            self.match.activateUnit(unit, action)
+    def unitClicked(self, unit, ability):
+        if ability is not None:
+            self.match.activateUnit(unit, ability)
 
 
 # Use different subclasses to implement stuff like spent/wounded units etc.
@@ -191,9 +191,9 @@ class UnitItem(stock.GraphicsPixmapObject):
         event.accept()
         
     def mouseReleaseEvent(self, event):
-        for action in reversed(self.unit.actions):
-            if event.pos().y() >= action.pos*self.scaleFactor():
-                self.scene().unitClicked(self.unit, action)
+        for ability in reversed(self.unit.abilities):
+            if event.pos().y() >= ability.pos * self.scaleFactor():
+                self.scene().unitClicked(self.unit, ability)
                 break
         else: self.scene().unitClicked(self.unit, None)
         event.accept()
