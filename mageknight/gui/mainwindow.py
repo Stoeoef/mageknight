@@ -85,6 +85,7 @@ class MainWindow(QtWidgets.QWidget):
             ('combat', self.tr("Combat")),
             ('shop', self.tr("Shop")),
             ('fame', self.tr("Fame board")),
+            ('endofturn', self.tr("End of turn")),
             ('terrain', self.tr("Terrain")),
             ('cards', self.tr("Cards")),
         ]
@@ -104,6 +105,9 @@ class MainWindow(QtWidgets.QWidget):
             elif viewId == 'fame':
                 from mageknight.gui import fameview
                 self._views[viewId] = fameview.FameView(self, self.client)
+            elif viewId == 'endofturn':
+                from mageknight.gui import endofturnview
+                self._views[viewId] = endofturnview.EndOfTurnView(self, self.client)
             elif viewId == 'terrain':
                 from mageknight.gui import terraincostsview
                 self._views[viewId] = terraincostsview.TerrainCostsView(self, self.client)

@@ -148,6 +148,9 @@ class Player(QtCore.QObject):
         self.match.stack.push(stack.Call(self._insertCardToDiscardPile, 0, card),
                               stack.Call(self._removeCardFromDiscardPile, card))
         
+    def putOnDrawPile(self, card):
+        self.match.stack.push(stack.Call(self._insertCardToDrawPile, len(self.drawPile), card),
+                              stack.Call(self._removeCardFromDrawPile, card))
         
     def _insertCard(self, index, card):
         self.handCards.insert(index, card)
@@ -165,6 +168,14 @@ class Player(QtCore.QObject):
         
     def _removeCardFromDiscardPile(self, card):
         self.discardPile.remove(card)
+        self.cardCountChanged.emit()
+        
+    def _insertCardToDrawPile(self, index, card):
+        self.drawPile.insert(index, card)
+        self.cardCountChanged.emit()
+        
+    def _removeCardFromDrawPile(self, card):
+        self.drawPile.remove(card)
         self.cardCountChanged.emit()
         
     def addFame(self, fame):

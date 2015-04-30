@@ -44,9 +44,12 @@ class Card:
 def get(name):
     """Return the card of the given name."""
     # action cards
-    for subclass in BasicAction.__subclasses__() + AdvancedAction.__subclasses__():
-        if subclass.name == name:
-            return subclass()
+    from . import artifacts
+    classes = [BasicAction, AdvancedAction, artifacts.Artifact]
+    for cls in classes:
+        for subclass in cls.__subclasses__():
+            if subclass.name == name:
+                return subclass()
     if name == 'wound':
         return Wound()
     raise ValueError("There is no card with name '{}'.".format(name))

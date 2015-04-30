@@ -41,8 +41,10 @@ class Map(basemap.Map):
         map.tilePile = TilePile(7, 2, 2)
         if shape is MapShape.wedge:
             map.addTile(Tile('A'), hexcoords.HexCoords(0,0))
-            map.addTile(map.tilePile.pop(), hexcoords.HexCoords(1,3))
-            map.addTile(map.tilePile.pop(), hexcoords.HexCoords(3,2))
+            #map.addTile(map.tilePile.pop(), hexcoords.HexCoords(1,3))
+            #map.addTile(map.tilePile.pop(), hexcoords.HexCoords(3,2))
+            map.addTile(Tile('7'), hexcoords.HexCoords(1,3))
+            map.addTile(Tile('6'), hexcoords.HexCoords(3,2))
         else:
             raise NotImplementedError()
         return map

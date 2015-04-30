@@ -22,8 +22,9 @@
 
 import math
 
+from mageknight.gui import dialogs
 from mageknight.data import * # @UnusedWildImport
-from . import basecombat, effects, sites
+from . import basecombat, effects, sites, units
 
     
 class EnemyInCombat:
@@ -61,7 +62,8 @@ class Combat(basecombat.BaseCombat):
             self.setEnemies([])
             
         # Reset various stuff
-        self.match.updateActions()
+        self.setRewards([])
+        self.setCurrentReward(None)
         for unit in self.match.currentPlayer.units:
             self.setUnitProtected(unit, False)
         
@@ -80,19 +82,6 @@ class Combat(basecombat.BaseCombat):
             else: self.setState(State.rangeAttack) # should not happen
         
         self.combatStarted.emit()
-    
-    def end(self):
-        sites = set()
-        for enemy in self.enemies:
-            sites.add(enemy.site)
-        for site in sites:
-            site.onCombatEnd(self.match, self.match.currentPlayer)
-        self.setEnemies([])
-        
-        # Reset various stuff
-        self.match.updateActions()
-        for unit in self.match.currentPlayer.units:
-            self.setUnitProtected(unit, False)
         
     def setEnemiesProvokable(self, enemies, isProvokable):
         enemies = [self._find(e) if isinstance(e, Enemy) else e for e in enemies]
@@ -169,13 +158,24 @@ class Combat(basecombat.BaseCombat):
             state = State.attack
         
         self.match.setState(state)
-        if self.match.state != State.combatEnd:
+        if self.match.state is not State.combatEnd:
             # If only one enemy is active, select it
             activeEnemies = [e for e in self.enemies if self.isEnemyActive(e)]
             if len(activeEnemies) == 1:
                 self.setEnemySelected(activeEnemies[0], True)
         else:
-            self.end()
+            sites = set()
+            for enemy in self.enemies:
+                sites.add(enemy.site)
+            for site in sites:
+                # Rewards will be added here
+                site.onCombatEnd(self.match, self.match.currentPlayer)
+            self.match.updateActions() # is often different after site.onCombatEnd
+            
+            # Reset various stuff
+            for unit in self.match.currentPlayer.units:
+                self.setUnitProtected(unit, False)
+            self.setEnemies([])
     
     def isEnemyActive(self, enemy):
         """Return whether the given enemy can be targeted in the current phase
@@ -334,3 +334,57 @@ class Combat(basecombat.BaseCombat):
         if damage == 0: # otherwise let the user assign damage to another unit or press "next"
             self.next()
             
+    def chooseRewardType(self, reward):
+        assert reward in self.rewards
+        if self.currentReward is not None:
+            raise InvalidAction("Choose your reward first.")
+        
+        if reward.type is CombatRewardType.crystal:
+            for _ in range(reward.count):
+                color = Mana.random()
+                self.addRewardItems(reward, [color])
+                if color is Mana.black:
+                    self.match.currentPlayer.addFame(1)
+                    continue
+                while color is Mana.gold:
+                    color = dialogs.chooseManaColor(default=Mana.gold) # query as long as necessary...
+                self.match.currentPlayer.addCrystal(color)
+            self.removeReward(reward)
+            if len(self.rewards) == 0:
+                self.match.setState(State.endOfTurn)
+            self.match.revealNewInformation()
+        
+        elif reward.type is CombatRewardType.artifact:
+            # rules: choose n artifacts from n+1
+            self.setCurrentReward(reward)
+            self.addRewardItems(reward, self.match.shop.takeArtifacts(reward.count + 1))
+        
+        elif reward.type is CombatRewardType.unit:
+            self.setCurrentReward(reward)
+            self.addRewardItems(reward, self.match.shop.units)
+            
+    def chooseRewardItem(self, reward, item):
+        assert self.currentReward is not None
+        
+        if reward.type is CombatRewardType.unit:
+            assert isinstance(item, units.Unit)
+            self.match._getUnit(self.match.currentPlayer, item, reward=True)
+            
+        else:
+            self.match.currentPlayer.putOnDrawPile(item)
+            # TODO: remove advanced actions, spells from offer
+        
+        self.removeRewardItem(reward, item)
+        self.setRewardCount(reward, reward.count-1)
+        if reward.count <= 0:
+            self.setCurrentReward(None)
+            self.removeReward(reward)
+        
+        if len(self.rewards) == 0:
+            self.match.setState(State.endOfTurn)
+
+            
+            
+                        
+            
+        

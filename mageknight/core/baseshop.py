@@ -38,7 +38,7 @@ class BaseShop(QtCore.QObject):
         super().__init__()
         self.match = match
         
-        # Create piles and fill them with all cards/units
+        # Create piles and fill them with all cards/units # TODO: move to shop.create
         self.advancedActionsPile = []
         for cardClass in cards.AdvancedAction.__subclasses__(): # @UndefinedVariable
             self.advancedActionsPile.append(cardClass())
@@ -53,6 +53,7 @@ class BaseShop(QtCore.QObject):
         for unitClass in units.EliteUnit.__subclasses__(): # @UndefinedVariable
             for _ in range(unitClass.count):
                 self.regularUnitsPile.append(unitClass())
+        self.artifactsPile = []
         
         # Create offers
         self.advancedActions = []
@@ -87,4 +88,12 @@ class BaseShop(QtCore.QObject):
     def _removeUnit(self, unit):
         self.units.remove(unit)
         self.unitsChanged.emit()
+        
+    def takeArtifacts(self, number):
+        number = min(number, len(self.artifactsPile))
+        result = self.artifactsPile[-number:]
+        del self.artifactsPile[-number:]
+        self.match.revealNewInformation()
+        return result
+    
             

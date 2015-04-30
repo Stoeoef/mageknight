@@ -20,6 +20,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import random
+
 from PyQt5 import QtCore
 translate = QtCore.QCoreApplication.translate
 
@@ -65,7 +67,7 @@ class FortifiedSite(SiteOnMap):
         # TODO: conquer keeps of other players
     
     def updateActions(self, match, player):
-        if self.owner == player and match.state == State.movement:
+        if match.state == State.movement:
             match.actions.add('interact', translate('sites', "Interact"), match.startInteraction)
             
     def onAdjacent(self, match, player):
@@ -87,7 +89,7 @@ class AdventureSite(SiteOnMap):
         # note: owner does not change when a dungeon/tomb is reentered
         if self.owner is None and len(self.enemies) == 0:
             match.map.setOwner(self, player)
-            # TODO: gain reward
+            self.addReward(match) # defined in subclasses
         else:
             # remove enemies so that new enemies are chosen at the next fight
             match.map.setEnemies(self, [])
@@ -128,6 +130,12 @@ class Dungeon(AdventureSite):
         match.map.setEnemies(self, match.chooseEnemies([EnemyCategory.draconum]))
         match.combat.begin(self)
         
+    def addReward(self, match):
+        if random.randint(1,3) == 1:
+            match.combat.addReward(CombatReward(CombatRewardType.spell))
+        else: match.combat.addReward(CombatReward(CombatRewardType.artifact))
+        match.revealNewInformation()
+
 
 class Keep(FortifiedSite):
     type = Site.keep
@@ -144,6 +152,11 @@ class MageTower(FortifiedSite):
     def __init__(self, match, coords, data):
         super().__init__(match, coords, data)
         self.enemies = [UnknownEnemy(EnemyCategory.mageTower)]
+        
+    def onCombatEnd(self, match, player):
+        super().onCombatEnd()
+        if len(self.enemies) == 0:
+            match.combat.addReward(CombatReward(CombatRewardType.spell))
 
 
 class MagicalGlade(SiteOnMap):
@@ -214,7 +227,7 @@ class Monastery(SiteOnMap):
     def onCombatEnd(self, match, player):
         if len(self.enemies) == 0:
             match.map.setOwner(self, player)
-            # TODO: gain an artifact
+            match.combat.addReward(CombatReward(CombatRewardType.artifact))
         else:
             # remove enemies so that new enemies are chosen at the next fight
             match.map.setEnemies(self, [])
@@ -228,6 +241,9 @@ class MonsterDen(AdventureSite):
         match.map.setEnemies(self, match.chooseEnemies([EnemyCategory.dungeon]))
         match.combat.begin(self)
         
+    def addReward(self, match):
+        match.combat.addReward(CombatReward(CombatRewardType.crystal, 2))
+
 
 class SpawningGrounds(AdventureSite):
     type = Site.spawningGrounds
@@ -237,6 +253,10 @@ class SpawningGrounds(AdventureSite):
         match.map.setEnemies(self, match.chooseEnemies([EnemyCategory.dungeon, EnemyCategory.dungeon]))
         match.combat.begin(self)
         
+    def addReward(self, match):
+        match.combat.addReward(CombatReward(CombatRewardType.crystal, 3))
+        match.combat.addReward(CombatReward(CombatRewardType.artifact))
+        
 
 class Tomb(AdventureSite):
     type = Site.tomb
@@ -245,7 +265,11 @@ class Tomb(AdventureSite):
     def enter(self, match, player):
         # TODO: night rules, no units, reenter
         match.map.setEnemies(self, match.chooseEnemies([EnemyCategory.draconum]))
-        match.combat.begin(self)    
+        match.combat.begin(self)   
+         
+    def addReward(self, match):
+        match.combat.addReward(CombatReward(CombatRewardType.spell))
+        match.combat.addReward(CombatReward(CombatRewardType.artifact))
 
 
 class Village(SiteOnMap):

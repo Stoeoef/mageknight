@@ -78,7 +78,7 @@ def chooseIndex(options, **kwargs):
     else: raise CancelAction()
 
 
-def chooseManaColor(match=None, available=False, basic=True, fromList=None):
+def chooseManaColor(match=None, available=False, basic=True, fromList=None, default=None):
     if fromList is not None:
         colors = fromList
     else:
@@ -95,7 +95,7 @@ def chooseManaColor(match=None, available=False, basic=True, fromList=None):
     for color in colors:
         if color not in colorOptions:
             colorOptions.append(color)
-    return choose(colorOptions) # TODO: implement a nicer dialog, using crystal icons
+    return choose(colorOptions, default=default) # TODO: implement a nicer dialog, using crystal icons
 
 
 def chooseCard(player, type=None, allowWounds=False):

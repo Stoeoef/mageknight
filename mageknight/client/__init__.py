@@ -87,6 +87,10 @@ class LocalMatchClient(Adapter):
     def activateAction(self, actionId): pass
     @action
     def explore(self, coords): pass
+    @action
+    def chooseRewardType(self, reward): pass
+    @action
+    def chooseRewardItem(self, reward, item): pass
 
         
 class ManaSourceAdapter(Adapter):

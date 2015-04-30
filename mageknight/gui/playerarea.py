@@ -25,6 +25,7 @@ from PyQt5.QtCore import Qt
 
 from mageknight import utils
 from mageknight.gui import stock
+from mageknight.core import artifacts, cards
 
 
 class PlayerArea(QtWidgets.QWidget):
@@ -92,7 +93,11 @@ class PlayerAreaScene(QtWidgets.QGraphicsScene):
         elif slotDifference < 0:
             for _ in range(-slotDifference):
                 self.units.addItem(UnitSlot(self.player, self.units.objectSize))
-            
+    
+    def cardClicked(self, card, action):
+        if action is not None:
+            self.match.playCard(card, action)
+        
     def unitClicked(self, unit, ability):
         if ability is not None or unit.isWounded:
             self.match.activateUnit(unit, ability)
@@ -118,11 +123,21 @@ class CardItem(stock.GraphicsPixmapObject):
         event.accept()
         
     def mouseReleaseEvent(self, event):
-        # TODO: Currently this supports only action cards
-        if 295*self.scaleFactor() < event.pos().y() < 395*self.scaleFactor():
-            self.scene().match.playCard(self.card, 0)
-        elif 395*self.scaleFactor() < event.pos().y() < 495*self.scaleFactor():
-            self.scene().match.playCard(self.card, 1)
+        if isinstance(self.card, cards.ActionCard):
+            if 295*self.scaleFactor() < event.pos().y() < 395*self.scaleFactor():
+                self.scene().cardClicked(self.card, 0)
+            elif 395*self.scaleFactor() < event.pos().y() < 495*self.scaleFactor():
+                self.scene().cardClicked(self.card, 1)
+            else: self.scene().cardClicked(self.card, None)
+                
+        elif isinstance(self.card, artifacts.Artifact):
+            if 274*self.scaleFactor() < event.pos().y() < 384*self.scaleFactor():
+                self.scene().cardClicked(self.card, 0)
+            elif 384*self.scaleFactor() < event.pos().y() < 488*self.scaleFactor():
+                self.scene().cardClicked(self.card, 1)
+            else: self.scene().cardClicked(self.card, None)
+            
+            
         event.accept()
         
     def contextMenuEvent(self, event):

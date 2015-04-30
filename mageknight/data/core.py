@@ -23,7 +23,7 @@
 import enum, random
 
 __all__ = ['InvalidAction', 'CancelAction', 'State', 'RoundType', 'Round', 'Mana',
-           'AttackRange', 'Element', 'EffectType']
+           'AttackRange', 'Element', 'EffectType', 'CombatReward', 'CombatRewardType']
 
 
 class InvalidAction(Exception):
@@ -52,6 +52,9 @@ class State(enum.Enum):
     block = 12
     assignDamage = 13
     attack = 14
+    combatRewards = 15
+    
+    endOfTurn = 20
     
     @staticmethod
     def combatStates():
@@ -143,4 +146,32 @@ class EffectType(enum.Enum):
     healing = 4
     special = 5
     
+    
+class CombatRewardType(enum.Enum):
+    """Type of reward after combat. Fame/reputation gains are not considered as combat rewards."""
+    crystal = 1
+    artifact = 2
+    spell = 3
+    advancedAction = 4
+    unit = 5
+    
+    @property
+    def title(self):
+        if self is CombatRewardType.crystal:
+            return "Crystal" # TODO: translate
+        elif self is CombatRewardType.artifact:
+            return "Artifact"
+        elif self is CombatRewardType.spell:
+            return "Spell"
+        elif self is CombatRewardType.advancedAction:
+            return "Advanced Action"
+        elif self is CombatRewardType.unit:
+            return "Unit"
+                
+class CombatReward:
+    def __init__(self, type, count=1):
+        self.type = type
+        self.count = count
+        self.items = None
+        
     

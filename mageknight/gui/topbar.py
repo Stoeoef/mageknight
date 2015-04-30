@@ -24,7 +24,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt 
 
 from mageknight import utils
-from mageknight.data import Mana
+from mageknight.data import Mana, AttackRange
 
 
 class TopBar(QtWidgets.QWidget):
@@ -132,6 +132,11 @@ class CheatBar(QtWidgets.QToolBar):
             action = QtWidgets.QAction(effect.title[:2], self)
             action.triggered.connect(functools.partial(match.effects.add, effect))
             self.addAction(action)
+            
+        effect = effects.AttackPoints(4, range=AttackRange.siege)
+        action = QtWidgets.QAction('Si', self)
+        action.triggered.connect(functools.partial(match.effects.add, effect))
+        self.addAction(action)
             
         action = QtWidgets.QAction('Ma', self)
         action.triggered.connect(self._addMana)

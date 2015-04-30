@@ -48,7 +48,7 @@ class Match(QtCore.QObject):
         self.source = source.ManaSource(self, len(self.players)+2)
         self.map = map.Map.create(self, MapShape.wedge)
         self.effects = effectlist.EffectList(self)
-        self.shop = shop.Shop(self)
+        self.shop = shop.Shop.create(self)
         self.combat = combat.Combat(self)
         self.actions = actions.ActionList(self)
         
@@ -77,18 +77,27 @@ class Match(QtCore.QObject):
             site.onBeginOfTurn(self, self.currentPlayer)
             site.onEnter(self, self.currentPlayer)
         self.revealNewInformation() # clear stack
+        self.combat.addReward(CombatReward(CombatRewardType.artifact, 1))
         
     def endTurn(self):
-        site = self.map.siteAtPlayer(self.currentPlayer)
-        if site is not None:
-            site.onEndOfTurn(self, self.currentPlayer)
-        # TODO: combat reward, level-up, etc.
-        self.effects.clear()
-        self.currentPlayer.drawCards()
-        self.beginTurn()
+        if self.state is not State.endOfTurn:
+            # Start end of turn sequence
+            site = self.map.siteAtPlayer(self.currentPlayer)
+            if site is not None:
+                site.onEndOfTurn(self, self.currentPlayer)
+            # TODO: combat reward, level-up, etc.
+            self.effects.clear()
+            
+            if len(self.combat.rewards) > 0:
+                self.setState(State.combatRewards)
+            else:
+                self.setState(State.endOfTurn)
+        else:
+            # Really end turn
+            self.currentPlayer.drawCards()
+            self.beginTurn()
         
     def setState(self, state):
-        print("SET STATE", state)
         assert isinstance(state, State)
         if state != self.state:
             self.stack.push(stack.Call(self._setState, state),
@@ -97,6 +106,7 @@ class Match(QtCore.QObject):
     
     def _setState(self, state):
         if state != self.state:
+            print("SET STATE", state)
             self.state = state
             self.stateChanged.emit(state)
                 
@@ -329,7 +339,8 @@ class Match(QtCore.QObject):
         site = self.map.siteAt(self.map.persons[self.currentPlayer]) # TODO: improve this
         if site is not None:
             site.updateActions(self, self.currentPlayer)
-        if self.state in [State.movement, State.interaction, State.combatEnd]:
+        if self.state in [State.movement, State.interaction, State.combatEnd,
+                          State.endOfTurn, State.combatRewards]:
             self.actions.add('endturn', self.tr("End turn"), self.endTurn)
     
     def startInteraction(self):
@@ -365,11 +376,17 @@ class Match(QtCore.QObject):
         site = self.map.siteAtPlayer(player)
         if site is None or not site.type in unit.sites:
             raise InvalidAction("Cannot recruit unit at this place.")
-        if player.unitLimit <= player.unitCount:
+        self._getUnit(player, unit, reward=False)
+        
+    def _getUnit(self, player, unit, reward):
+        # This helper function is used in recruitUnit (reward=False)
+        # and when a player gets a unit as reward (reward=True)
+        if player.unitLimit <= player.unitCount: # TODO: special case (reward+level-up)
             unitToDisband = dialogs.choose(player.units,
                                            text=self.tr("All slots occupied. Choose a unit to disband."))
             player.removeUnit(unitToDisband)
-        self.payInfluencePoints(unit.cost)
+        if not reward:
+            self.payInfluencePoints(unit.cost)
         self.shop.takeUnit(unit)
         player.addUnit(unit)
         
@@ -404,3 +421,13 @@ class Match(QtCore.QObject):
             for player in self.players:
                 if site.coords.isNeighborOf(self.map.persons[player]):
                     site.onAdjacent(self, player)
+
+    @action(State.combatRewards)
+    def chooseRewardType(self, player, reward):
+        self.combat.chooseRewardType(reward)
+        
+    @action(State.combatRewards)
+    def chooseRewardItem(self, player, reward, item):
+        self.combat.chooseRewardItem(reward, item)
+
+        

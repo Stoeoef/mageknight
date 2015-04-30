@@ -21,6 +21,7 @@
 
 import random
 
+from mageknight.core import artifacts
 from mageknight.data import InvalidAction
 from . import baseshop
 
@@ -29,8 +30,12 @@ class Shop(baseshop.BaseShop):
     """The shop contains the advanced actions, spells, units and skills that can be obtained at various
     occasions (mainly interaction, but also level-up etc.).
     """
-    def __init__(self, match):
-        super().__init__(match)
+    @staticmethod
+    def create(match):
+        shop = Shop(match)
+        shop.artifactsPile = artifacts.all() # TODO: similar for all other card types
+        random.shuffle(shop.artifactsPile)
+        return shop
         
     def refreshUnits(self):
         self.units = []
