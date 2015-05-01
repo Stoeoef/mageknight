@@ -28,10 +28,6 @@ from mageknight.core import cards, effects
 from mageknight.data import * # @UnusedWildImport
 
 
-def all():
-    return [cls() for cls in Artifact.__subclasses__()]
-
-
 class Artifact(cards.Card):
     def pixmap(self):
         return utils.getPixmap('mk/cards/artifacts/{}.jpg'.format(self.name))
@@ -44,7 +40,7 @@ class RubyRing(Artifact):
     def basicEffect(self, match, player):
         match.effects.add(effects.ManaTokens(Mana.red))
         player.addCrystal(Mana.red)
-        player.addFame(1)
+        player.fame += 1
         
         
 class SapphireRing(Artifact):
@@ -54,7 +50,7 @@ class SapphireRing(Artifact):
     def basicEffect(self, match, player):
         match.effects.add(effects.ManaTokens(Mana.blue))
         player.addCrystal(Mana.blue)
-        player.addFame(1)
+        player.fame += 1
         
         
 class DiamondRing(Artifact):
@@ -64,7 +60,7 @@ class DiamondRing(Artifact):
     def basicEffect(self, match, player):
         match.effects.add(effects.ManaTokens(Mana.white))
         player.addCrystal(Mana.white)
-        player.addFame(1)
+        player.fame += 1
         
         
 class EmeraldRing(Artifact):
@@ -74,4 +70,4 @@ class EmeraldRing(Artifact):
     def basicEffect(self, match, player):
         match.effects.add(effects.ManaTokens(Mana.green))
         player.addCrystal(Mana.green)
-        player.addFame(1)
+        player.fame += 1

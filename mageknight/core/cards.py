@@ -39,6 +39,13 @@ class Card:
     @property
     def isWound(self):
         return isinstance(self, Wound)
+    
+    @classmethod
+    def all(cls):
+        result = []
+        for cardClass in cls.__subclasses__():
+            result.append(cardClass())
+        return result
 
 
 def get(name):
@@ -156,7 +163,7 @@ class Concentration(BasicAction):
         concentration = effects.Concentration(amount)
         match.effects.add(concentration)
         card = dialogs.chooseCard(player, type=ActionCard)
-        player.removeCard(card)
+        player.handCards.remove(card)
         card.strongEffect(match, player)
         match.effects.remove(concentration)
         
@@ -199,7 +206,7 @@ class Improvisation(BasicAction):
     
     def _effect(self, match, player, amount):
         card = dialogs.chooseCard(player)
-        player.removeCard(card)
+        player.handCards.remove(card)
         options = [effects.MovePoints(amount),
                    effects.InfluencePoints(amount),
                    effects.AttackPoints(amount),
@@ -221,7 +228,7 @@ class ManaDraw(BasicAction):
     effectType = EffectType.special
     
     def basicEffect(self, match, player):
-        match.source.changeLimit(1)
+        match.source.limit += 1
         
     def strongEffect(self, match, player):
         if len(match.source) == 0:
@@ -253,14 +260,14 @@ class NobleManners(BasicAction):
     
     def basicEffect(self, match, player):
         match.effects.add(effects.InfluencePoints(2))
-        if False:# TODO: check for interaction
-            player.addFame(1)
+        if match.state is State.interaction:
+            player.fame += 1
     
     def strongEffect(self, match, player):
         match.effects.add(effects.InfluencePoints(4))
-        if False:# TODO: check for interaction
-            player.addReputation(1)
-            player.addFame(1)
+        if match.state is State.interaction:
+            player.reputation += 1
+            player.fame += 1
     
     
 class Promise(BasicAction):

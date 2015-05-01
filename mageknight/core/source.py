@@ -20,16 +20,30 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from PyQt5 import QtCore
+
+from mageknight.attributes import * # @UnusedWildImport
 from mageknight.data import Mana, InvalidAction
-from . import basesource
 
 
-class ManaSource(basesource.ManaSource):        
+class ManaSource(AttributeObject):
+    """The mana source contains the mana dice available to all players. It behaves like a read-only list, so 
+    e.g. 'len(source)' and 'source[2]' work as expected. The additional attribute 'count' stores the initial
+    number of dice in the source (typically number of players + 2).
+    """ 
+    changed = QtCore.pyqtSignal()
+    _dice = ListAttribute(Mana, signal='changed')
+    limit = IntAttribute(default=1)
+        
+    def __init__(self, match, count):
+        super().__init__(match.stack)
+        self.match = match
+        self.count = count
+        
     def shuffle(self):
         """Shuffle all dice in the source."""
-        self.match.revealNewInformation()
         self._dice = [Mana.random() for _ in range(self.count)]
-        self.changed.emit()
+        self.match.newInformationRevealed()
     
     def reset(self):
         """Reset the source at the beginning of a new round."""
@@ -39,20 +53,36 @@ class ManaSource(basesource.ManaSource):
             self.shuffle()
         self.limit = 1        
 
-    def take(self, colorOrIndex):
-        """Take a die from the source to pay a mana for the current player. The argument is either the
-        index of the die or a color.
-        """ 
-        if isinstance(colorOrIndex, int):
-            color = self._dice[colorOrIndex] 
-        else: color = colorOrIndex
+    def remove(self, color):
+        """Remove a die from the source."""
+        self._dice.remove(color)
         
+    def take(self, color):
+        """Take a die from the source to pay a mana for the current player. Contrary to 'remove' this
+        includes some checks and decreases source.limit.
+        """ 
         if self.limit == 0:
             raise InvalidAction("You cannot take another die in this turn")
         if color == Mana.black and not self.match.nightRulesApply():
             raise InvalidAction("You must not use black mana during day.")
         if color == Mana.gold and self.match.nightRulesApply():
             raise InvalidAction("You must not use gold mana during night.")
-        self.changeLimit(-1)
-        self.remove(color)
+        self.limit -= 1
+        self._dice.remove(color)
         
+    # Methods required for a read-only list
+    def __len__(self):
+        return len(self._dice)
+    
+    def __getitem__(self, index):
+        return self._dice[index]
+    
+    def __contains__(self, object):
+        return object in self._dice
+    
+    def __iter__(self):
+        return iter(self._dice)
+    
+    def __str__(self):
+        return '[{}]'.format(', '.join(color.name for color in self._dice))
+    

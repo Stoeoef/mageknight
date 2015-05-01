@@ -18,46 +18,73 @@
 # 
 # You should have received a copy of the GNU General Public License
 # 
-
 import random
 
-from mageknight.core import artifacts
+from PyQt5 import QtCore
+
 from mageknight.data import InvalidAction
-from . import baseshop
+from mageknight.attributes import * # @UnusedWildImport
+from . import cards, units as unitsModule, artifacts  # @UnresolvedImport
 
 
-class Shop(baseshop.BaseShop):
+class Shop(AttributeObject):
     """The shop contains the advanced actions, spells, units and skills that can be obtained at various
     occasions (mainly interaction, but also level-up etc.).
     """
+
+    advancedActionsChanged = QtCore.pyqtSignal()
+    advancedActions = ListAttribute(cards.AdvancedAction)
+    
+    spellsChanged = QtCore.pyqtSignal()
+    spells = ListAttribute(cards.Spell)
+    
+    unitsChanged = QtCore.pyqtSignal()
+    units = ListAttribute(unitsModule.Unit)
+    
+    monasteryOfferChanged = QtCore.pyqtSignal()
+    monasteryOffer = ListAttribute(cards.AdvancedAction)
+    
+    commonSkillOfferChanged = QtCore.pyqtSignal()
+    commonSkillOffer = ListAttribute(cards.Card) # TODO: use skill
+    
+    advancedActionsPile = ListAttribute(cards.AdvancedAction)
+    spellsPile = ListAttribute(cards.Spell)
+    artifactsPile = ListAttribute(artifacts.Artifact)
+    regularUnitsPile = ListAttribute(unitsModule.RegularUnit)
+    eliteUnitsPile = ListAttribute(unitsModule.EliteUnit)
+    
+    def __init__(self, match):
+        super().__init__(match.stack)
+        self.match = match
+        
     @staticmethod
     def create(match):
         shop = Shop(match)
-        shop.artifactsPile = artifacts.all() # TODO: similar for all other card types
-        random.shuffle(shop.artifactsPile)
+        shop.advancedActionsPile = cards.AdvancedAction.all()
+        shop.spellsPile = cards.Spell.all()
+        shop.artifactsPile = artifacts.Artifact.all()
+        shop.regularUnitsPile = unitsModule.RegularUnit.all()
+        shop.eliteUnitsPile = unitsModule.EliteUnit.all()
+        for pile in [shop.advancedActionsPile, shop.spellsPile, shop.artifactsPile,
+                     shop.regularUnitsPile, shop.eliteUnitsPile]:
+            random.shuffle(pile)
         return shop
         
     def refreshUnits(self):
-        self.units = []
         unitCount = len(self.match.players) + 2
-        for _ in range(unitCount):
-            self.units.append(_take(self.regularUnitsPile))
-        self.unitsChanged.emit()
+        self.units = self.regularUnitsPile[-unitCount:]
+        del self.regularUnitsPile[-unitCount:]
     
     def revealAdvancedAction(self):
         self.stack.revealNewInformation()
         if len(self.advancedActions) >= 3 or len(self.advancedActionsPile) == 0:
             raise InvalidAction("Cannot reveal another advanced action")
-        self.advancedActions.append(_take(self.advancedActionsPile))
-        self.advancedActionsChanged.emit()
+        action = self.advancedActionsPile.pop()
+        self.advancedActions.append(action)
         
     def revealAdvancedActions(self):
         while len(self.advancedActions) < 3 and len(self.advancedActionsPile) > 0:
-            self.advancedActions.append(_take(self.advancedActionsPile))
-        self.advancedActionsChanged.emit()
+            action = self.advancedActionsPile.pop()
+            self.advancedActions.append(action)
         
         
-    
-def _take(list):
-    """Remove and return a random element from *list*."""
-    return list.pop(random.randint(0, len(list)-1))

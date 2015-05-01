@@ -30,6 +30,17 @@ from . import basemap, sites
 
 
 class Map(basemap.Map):
+    """Model for the map of a Mage Knight match.
+    Public (read-only) attributes are:
+        
+        - shape: the MapShape specified in the constructor.
+        - tiles: dict mapping HexCoords to Tiles. The coordinates always refer to the center hex of the tile.
+        - shieldTokens: dict mapping HexCoords to a Player whose shield token is at this positionj
+        - enemies: dict mapping HexCoords to a list of enemies at this position.
+        - persons: dict mapping Persons to HexCoords (the mapping direction is swapped, because persons
+                   typically move on the map) 
+    
+    """
     def __init__(self, match, shape):
         super().__init__(match, shape)
         self.resetTerrainCosts()

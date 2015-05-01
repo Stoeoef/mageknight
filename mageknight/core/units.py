@@ -97,6 +97,14 @@ class Unit:
         abilities = [x for x in type(self).__dict__.values() if isinstance(x, UnitAbility)]
         abilities.sort(key=lambda ability: ability.pos)
         return abilities
+    
+    @classmethod
+    def all(cls):
+        result = []
+        for unitClass in cls.__subclasses__():
+            for _ in range(unitClass.count):
+                result.append(unitClass())
+        return result
         
 
 def get(name):

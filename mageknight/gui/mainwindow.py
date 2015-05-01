@@ -37,9 +37,9 @@ class MainWindow(QtWidgets.QWidget):
         
         from mageknight import core, client
         from mageknight.data import Hero
-        players = [core.Player('Nameless Player', Hero.Norowas)]
+        players = [core.PlayerData('Nameless Player', Hero.Norowas)]
         self.match = core.Match(players)
-        self.client = client.LocalMatchClient(self.match, players[0])
+        self.client = client.LocalMatchClient(self.match, self.match.players[0])
         
         layout = QtWidgets.QHBoxLayout(self)
         layout.setSpacing(0)
@@ -67,7 +67,7 @@ class MainWindow(QtWidgets.QWidget):
         self.effectList = effectlist.EffectList(self.client)
         rightLayout.addWidget(self.effectList)
         
-        self.playerArea = playerarea.PlayerArea(self.client, players[0])
+        self.playerArea = playerarea.PlayerArea(self.client, self.match.players[0])
         leftLayout.addWidget(self.playerArea)
         
         self.playerColumn = playerstatus.PlayerColumn(self.client)

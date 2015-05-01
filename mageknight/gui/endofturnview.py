@@ -62,7 +62,7 @@ class EndOfTurnView(QtWidgets.QDialog):
                 title = self.tr("{} ({}x)".format(reward.type.title, reward.count))
             else: title = reward.type.title
             button = QtWidgets.QPushButton(title)
-            if reward.items is None:
+            if len(reward.items) == 0:
                 button.clicked.connect(functools.partial(self._rewardTypeChosen, reward))
             else:
                 button.setEnabled(False)

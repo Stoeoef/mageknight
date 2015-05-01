@@ -172,6 +172,6 @@ class CombatReward:
     def __init__(self, type, count=1):
         self.type = type
         self.count = count
-        self.items = None
+        self.items = tuple()
         
     

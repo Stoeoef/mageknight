@@ -33,6 +33,12 @@ from .decorators import action
 DISCARD_CARDS = True # TODO: remove this debugging option
 
 
+class PlayerData:
+    def __init__(self, name, hero):
+        self.name = name
+        self.hero = hero
+        
+        
 class Match(QtCore.QObject):
     """This is the central object managing a match."""
     stateChanged = QtCore.pyqtSignal(State)
@@ -44,7 +50,7 @@ class Match(QtCore.QObject):
         
         self.round = Round(1, RoundType.day)
         self.state = None
-        self.players = players
+        self.players = [player.Player(self, data.name, data.hero) for data in players]
         self.source = source.ManaSource(self, len(self.players)+2)
         self.map = map.Map.create(self, MapShape.wedge)
         self.effects = effectlist.EffectList(self)
@@ -53,9 +59,9 @@ class Match(QtCore.QObject):
         self.actions = actions.ActionList(self)
         
         self.currentPlayer = self.players[0]
-        for player in self.players:
-            player.match = self
-            self.map.addPerson(player, hexcoords.HexCoords(0, 0))
+        for pl in self.players:
+            pl.match = self
+            self.map.addPerson(pl, hexcoords.HexCoords(0, 0))
 
         self.beginRound()    
     
@@ -77,7 +83,7 @@ class Match(QtCore.QObject):
             site.onBeginOfTurn(self, self.currentPlayer)
             site.onEnter(self, self.currentPlayer)
         self.revealNewInformation() # clear stack
-        self.combat.addReward(CombatReward(CombatRewardType.artifact, 1))
+        self.combat.rewards.append(CombatReward(CombatRewardType.artifact, 1))
         
     def endTurn(self):
         if self.state is not State.endOfTurn:
@@ -116,6 +122,13 @@ class Match(QtCore.QObject):
             self.stack.endMacro()
             self.stack.clear()
             self.stack.beginMacro()
+        else:
+            self.stack.clear()
+    
+    def newInformationRevealed(self):
+        if self.stack.isComposing():
+            self.stack.endMacro()
+            self.stack.clear()
         else:
             self.stack.clear()
     
@@ -364,7 +377,7 @@ class Match(QtCore.QObject):
             if ability.cost is not None:
                 self.payMana(ability.cost)
             ability.activate(unit, self, player)
-            player.spendUnit(unit)
+            player.units.setIsReady(unit, False)
         else:
             self.payHealPoints(unit.level)
             player.healUnit(unit)
@@ -381,14 +394,14 @@ class Match(QtCore.QObject):
     def _getUnit(self, player, unit, reward):
         # This helper function is used in recruitUnit (reward=False)
         # and when a player gets a unit as reward (reward=True)
-        if player.unitLimit <= player.unitCount: # TODO: special case (reward+level-up)
+        if player.unitLimit <= len(player.units): # TODO: special case (reward+level-up)
             unitToDisband = dialogs.choose(player.units,
                                            text=self.tr("All slots occupied. Choose a unit to disband."))
-            player.removeUnit(unitToDisband)
+            player.units.remove(unitToDisband)
         if not reward:
             self.payInfluencePoints(unit.cost)
-        self.shop.takeUnit(unit)
-        player.addUnit(unit)
+        self.shop.units.remove(unit)
+        player.units.append(unit)
         
     @action(State.combatStates())
     def setEnemySelected(self, player, enemy, selected):

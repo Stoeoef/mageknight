@@ -203,6 +203,6 @@ class CardCountWidget(QtWidgets.QWidget):
         self._cardCountChanged() # initialize
         
     def _cardCountChanged(self):
-        self.drawPileLabel.setText(str(self.player.drawPileCount))
-        self.handCardLabel.setText(str(self.player.handCardCount))
-        self.discardPileLabel.setText(str(self.player.discardPileCount))
+        self.drawPileLabel.setText(str(len(self.player.drawPile)))
+        self.handCardLabel.setText(str(len(self.player.handCards)))
+        self.discardPileLabel.setText(str(len(self.player.discardPile)))

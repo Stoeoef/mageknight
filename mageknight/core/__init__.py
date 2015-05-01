@@ -25,4 +25,4 @@ from .source import ManaSource
 from .player import Player
 from .map import Map
 from .effectlist import EffectList
-from .match import Match
+from .match import Match, PlayerData

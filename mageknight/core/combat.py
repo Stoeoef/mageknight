@@ -22,11 +22,15 @@
 
 import math
 
+from PyQt5 import QtCore
+
+from mageknight import stack
 from mageknight.gui import dialogs
 from mageknight.data import * # @UnusedWildImport
-from . import basecombat, effects, sites, units
-
+from . import effects, sites, units
+from mageknight.attributes import * # @UnusedWildImport
     
+
 class EnemyInCombat:
     def __init__(self, enemy, site):
         self.enemy = enemy
@@ -48,7 +52,56 @@ class EnemyInCombat:
         return getattr(self.enemy, attr)
         
 
-class Combat(basecombat.BaseCombat):
+class Combat(AttributeObject):
+    combatStarted = QtCore.pyqtSignal()
+    enemiesChanged = QtCore.pyqtSignal()
+    rewardsChanged = QtCore.pyqtSignal()
+    
+    enemies = ListAttribute(EnemyInCombat, 
+                            itemAttributes=[('isAlive', bool),
+                                            ('isSelected', bool),
+                                            ('isBlocked', bool),
+                                            ('isProvokable', bool),
+                                            ('damage', int)
+                                           ])
+    rewards = ListAttribute(CombatReward,
+                            itemAttributes=[('count', int), 
+                                            ('items', list)])
+    effectsPlayed = BoolAttribute()
+    currentReward = Attribute(CombatReward)
+    
+    def __init__(self, match):
+        super().__init__(match.stack)
+        self.match = match
+        
+    def hasSelectedEnemy(self):
+        return any(enemy.isSelected for enemy in self.enemies)
+        
+    def selectedEnemies(self):
+        return [enemy for enemy in self.enemies if enemy.isSelected]
+        
+    def setEnemiesProvokable(self, enemies, isProvokable):
+        for e in enemies:
+            self.enemies.setIsProvokable(e, isProvokable)
+            if not isProvokable:
+                self.enemies.setIsSelected(e, True)
+        
+        # TODO: Why is this necessary?
+        if self.match.state is State.provokeMarauders and not any(e.isProvokable for e in self.enemies):
+            self.setState(State.rangeAttack)
+            
+    def clearSelection(self):
+        for enemy in self.enemies:
+            self.enemies.setIsSelected(enemy, False)
+            
+    def _setUnitProtected(self, unit, isProtected):
+        unit.isProtected = isProtected
+        
+    def setUnitProtected(self, unit, isProtected):
+        if isProtected != unit.isProtected:
+            self.stack.push(stack.Call(self._setUnitProtected, unit, isProtected),
+                            stack.Call(self._setUnitProtected, unit, not isProtected))
+        
     def begin(self, site, maraudersProvokable=False):
         """Begin a combat against the given site. This is not necessarily the site on which the player is
         standing: It is e.g. possible to fight against a marauding enemy while standing on a monastery.
@@ -57,13 +110,13 @@ class Combat(basecombat.BaseCombat):
         assert not self.match.state.inCombat
         
         if site is not None:
-            self.setEnemies([EnemyInCombat(enemy, site) for enemy in site.enemies])
-        else:
-            self.setEnemies([])
+            self.enemies = [EnemyInCombat(enemy, site) for enemy in site.enemies]
+        else: self.enemies = [] # player has to engage marauding enemies
             
         # Reset various stuff
-        self.setRewards([])
-        self.setCurrentReward(None)
+        self.rewards = []
+        self.currentReward = None
+        self.effectsPlayed = False
         for unit in self.match.currentPlayer.units:
             self.setUnitProtected(unit, False)
         
@@ -76,25 +129,15 @@ class Combat(basecombat.BaseCombat):
             if len(provokable) > 0:
                 for site in provokable:
                     enemies = [EnemyInCombat(enemy, site) for enemy in site.enemies]
-                    self.addEnemies(enemies)
+                    self.enemies.extend(enemies)
                     self.setEnemiesProvokable(enemies, True)
                 self.setState(State.provokeMarauders)
             else: self.setState(State.rangeAttack) # should not happen
         
         self.combatStarted.emit()
         
-    def setEnemiesProvokable(self, enemies, isProvokable):
-        enemies = [self._find(e) if isinstance(e, Enemy) else e for e in enemies]
-        super().setEnemiesProvokable(enemies, isProvokable)
-        if not isProvokable:
-            for enemy in enemies:
-                self.setEnemySelected(enemy, True)
-        
-        if self.match.state is State.provokeMarauders and not any(e.isProvokable for e in self.enemies):
-            self.setState(State.rangeAttack)
-        
     def checkEffectPlayable(self, effect=None, type=EffectType.unknown):
-        self.setEffectsPlayed(True)
+        self.effectsPlayed = True
         
         state = self.match.state
         assert state.inCombat
@@ -139,13 +182,13 @@ class Combat(basecombat.BaseCombat):
         
     def setState(self, state):
         self.clearSelection()
-        self.setEffectsPlayed(False)
+        self.effectsPlayed = False
         
         # Contrary to other states, State.provokeMarauders is entered only once (or not at all)
         if state is State.provokeMarauders:
             self.match.setState(state)
             for enemy in self.enemies:
-                self.setEnemySelected(enemy, not enemy.isProvokable)
+                self.enemies.setIsSelected(enemy, not enemy.isProvokable)
             return
                 
         # Skip states under certain circumstances
@@ -162,7 +205,7 @@ class Combat(basecombat.BaseCombat):
             # If only one enemy is active, select it
             activeEnemies = [e for e in self.enemies if self.isEnemyActive(e)]
             if len(activeEnemies) == 1:
-                self.setEnemySelected(activeEnemies[0], True)
+                self.enemies.setIsSelected(activeEnemies[0], True)
         else:
             sites = set()
             for enemy in self.enemies:
@@ -175,7 +218,7 @@ class Combat(basecombat.BaseCombat):
             # Reset various stuff
             for unit in self.match.currentPlayer.units:
                 self.setUnitProtected(unit, False)
-            self.setEnemies([])
+            self.enemies = []
     
     def isEnemyActive(self, enemy):
         """Return whether the given enemy can be targeted in the current phase
@@ -201,9 +244,9 @@ class Combat(basecombat.BaseCombat):
         if select and self.match.state in [State.block, State.assignDamage]:
             # only one enemy can be targeted in these phases. Thus: deselect all others
             for e in self.enemies:
-                super().setEnemySelected(e, e == enemy)
+                self.enemies.setIsSelected(e, e == enemy)
         else:
-            super().setEnemySelected(enemy, select)
+            self.enemies.setIsSelected(enemy, select)
         
     def next(self):
         state = self.match.state
@@ -212,7 +255,7 @@ class Combat(basecombat.BaseCombat):
         if not self.hasSelectedEnemy():
             raise InvalidAction("Must select an enemy first.")
         if state == State.provokeMarauders:
-            self.setEnemies([e for e in self.enemies if e.isSelected])
+            self.enemies = [e for e in self.enemies if e.isSelected]
             self.setState(State.rangeAttack)
             return
         if state == State.rangeAttack:
@@ -260,8 +303,8 @@ class Combat(basecombat.BaseCombat):
             self.killEnemies(self.selectedEnemies())
             
     def killEnemies(self, enemies):
-        super().killEnemies(enemies)
         for enemy in enemies:
+            self.enemies.remove(enemy)
             enemy.site.onEnemyKilled(self.match, self.match.currentPlayer, enemy.enemy)
             
     def resolveBlock(self):
@@ -291,7 +334,7 @@ class Combat(basecombat.BaseCombat):
             necessaryPoints *= 2
             
         if efficientPoints + inefficientPoints // 2 >= necessaryPoints:
-            self.blockEnemy(enemy)
+            self.enemies.setIsBlocked(enemy, True)
             
     def assignDamageToHero(self):
         if self.match.state != State.assignDamage:
@@ -308,7 +351,7 @@ class Combat(basecombat.BaseCombat):
             player.addWounds(woundCount, toDiscardPile=True)
         if enemy.paralyze:
             player.knockOut()
-        self.setDamage(enemy, 0)
+        self.enemies.setDamage(enemy, 0)
         
     def assignDamageToUnit(self, unit):
         if self.match.state != State.assignDamage:
@@ -328,7 +371,7 @@ class Combat(basecombat.BaseCombat):
                 self.match.currentPlayer.woundUnit(unit, wounds=1 if not enemy.poison else 2)
             else: self.match.currentPlayer.removeUnit(unit)
             damage = max(0, damage - unit.armor)
-        self.setDamage(enemy, damage)
+        self.enemies.setDamage(enemy, damage)
         self.setUnitProtected(unit, True) # cannot assign damage to this unit again
         
         if damage == 0: # otherwise let the user assign damage to another unit or press "next"
@@ -342,26 +385,26 @@ class Combat(basecombat.BaseCombat):
         if reward.type is CombatRewardType.crystal:
             for _ in range(reward.count):
                 color = Mana.random()
-                self.addRewardItems(reward, [color])
+                self.rewards.addItems(reward, [color])
                 if color is Mana.black:
                     self.match.currentPlayer.addFame(1)
                     continue
                 while color is Mana.gold:
                     color = dialogs.chooseManaColor(default=Mana.gold) # query as long as necessary...
                 self.match.currentPlayer.addCrystal(color)
-            self.removeReward(reward)
+            self.rewards.remove(reward)
             if len(self.rewards) == 0:
                 self.match.setState(State.endOfTurn)
             self.match.revealNewInformation()
         
         elif reward.type is CombatRewardType.artifact:
             # rules: choose n artifacts from n+1
-            self.setCurrentReward(reward)
-            self.addRewardItems(reward, self.match.shop.takeArtifacts(reward.count + 1))
+            self.currentReward = reward
+            self.rewards.addItems(reward, self.match.shop.takeArtifacts(reward.count + 1))
         
         elif reward.type is CombatRewardType.unit:
-            self.setCurrentReward(reward)
-            self.addRewardItems(reward, self.match.shop.units)
+            self.currendReward = reward
+            self.rewards.addItems(reward, self.match.shop.units)
             
     def chooseRewardItem(self, reward, item):
         assert self.currentReward is not None
@@ -371,14 +414,14 @@ class Combat(basecombat.BaseCombat):
             self.match._getUnit(self.match.currentPlayer, item, reward=True)
             
         else:
-            self.match.currentPlayer.putOnDrawPile(item)
+            self.match.currentPlayer.drawPile.append(item)
             # TODO: remove advanced actions, spells from offer
         
-        self.removeRewardItem(reward, item)
-        self.setRewardCount(reward, reward.count-1)
+        self.rewards.removeItems(reward, [item])
+        self.rewards.setCount(reward, reward.count-1)
         if reward.count <= 0:
-            self.setCurrentReward(None)
-            self.removeReward(reward)
+            self.currentReward = None
+            self.rewards.remove(reward)
         
         if len(self.rewards) == 0:
             self.match.setState(State.endOfTurn)

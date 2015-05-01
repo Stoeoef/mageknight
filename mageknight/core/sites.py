@@ -55,13 +55,13 @@ class SiteOnMap:
     
     def onEnemyKilled(self, match, player, enemy):
         match.map.removeEnemy(self, enemy)
-        player.addFame(enemy.fame) # TODO: halve in certain cases
+        player.fame += enemy.fame
         
 
 class FortifiedSite(SiteOnMap):
     def onEnter(self, match, player):
         if self.owner is None:
-            player.addReputation(-1)
+            player.reputation -= 1
             match.map.revealEnemies(self)
             match.combat.begin(self, maraudersProvokable=True)
         # TODO: conquer keeps of other players
@@ -118,7 +118,7 @@ class Draconum(SiteOnMap):
     
     def onEnemyKilled(self, match, player, enemy):
         super().onEnemyKilled(match, player, enemy)
-        player.addReputation(2)
+        player.reputation += 2
 
 
 class Dungeon(AdventureSite):
@@ -199,7 +199,7 @@ class MaraudingOrcs(SiteOnMap):
     
     def onEnemyKilled(self, match, player, enemy):
         super().onEnemyKilled(match, player, enemy)
-        player.addReputation(1)
+        player.reputation += 1
 
 
 class Monastery(SiteOnMap):
@@ -219,7 +219,7 @@ class Monastery(SiteOnMap):
         match.effects.add(effects.HealPoints(1))
         
     def burn(self, match, player):
-        player.addReputation(-3)
+        player.reputation -= 3
         match.map.setEnemies(self, match.chooseEnemies([EnemyCategory.mageTower]))
         match.combat.begin(self) # TODO: no units
         match.revealNewInformation()
@@ -282,7 +282,7 @@ class Village(SiteOnMap):
     def onBeginOfTurn(self, match, player):
         if dialogs.ask(translate('sites', "Do you wish to plunder the village?")):
             player.drawCards(2)
-            player.addReputation(-1)
+            player.reputation -= 1
         
     def updateActions(self, match, player):
         match.actions.add('interact', translate('sites', "Interact"), self.interact)
