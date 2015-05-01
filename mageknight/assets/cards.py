@@ -22,66 +22,11 @@
 from PyQt5 import QtCore
 translate = QtCore.QCoreApplication.translate
 
-from mageknight import utils
-from mageknight.gui import dialogs
 from mageknight.data import * # @UnusedWildImport
-from . import effects
+from mageknight.core import effects
+from mageknight.core.assets import BasicAction, ActionCard
+from mageknight.gui import dialogs
 
-
-class Card:
-    """Abstract base class for all cards. Note that two instances are always considered different."""
-    def __str__(self):
-        return self.title
-    
-    def __repr__(self):
-        return type(self).__name__
-    
-    @property
-    def isWound(self):
-        return isinstance(self, Wound)
-    
-    @classmethod
-    def all(cls):
-        result = []
-        for cardClass in cls.__subclasses__():
-            result.append(cardClass())
-        return result
-
-
-def get(name):
-    """Return the card of the given name."""
-    # action cards
-    from . import artifacts
-    classes = [BasicAction, AdvancedAction, artifacts.Artifact]
-    for cls in classes:
-        for subclass in cls.__subclasses__():
-            if subclass.name == name:
-                return subclass()
-    if name == 'wound':
-        return Wound()
-    raise ValueError("There is no card with name '{}'.".format(name))
-    
-    
-class ActionCard(Card):
-    def pixmap(self):
-        return utils.getPixmap('mk/cards/{}/{}.jpg'
-                            .format('advanced_actions' if self.isAdvanced else 'basic_actions', self.name))
-
-    
-class BasicAction(ActionCard):
-    isAdvanced = False
-
-
-class AdvancedAction(ActionCard):
-    isAdvanced = True
-
-
-class Spell(Card):
-    pass
-
-class Wound(Card):
-    def pixmap(self):
-        return utils.getPixmap('mk/cards/wound.jpg')
 
 
 class BattleVersatility(BasicAction):
@@ -373,4 +318,3 @@ class WillFocus(BasicAction):
     def strongEffect(self, match, player):
         Concentration._strongEffect(self, match, player, 2)
         
-    

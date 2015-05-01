@@ -24,7 +24,7 @@ from PyQt5 import QtCore
 
 from mageknight.data import InvalidAction
 from mageknight.attributes import * # @UnusedWildImport
-from . import cards, units as unitsModule, artifacts  # @UnresolvedImport
+from mageknight.core import assets
 
 
 class Shop(AttributeObject):
@@ -33,25 +33,25 @@ class Shop(AttributeObject):
     """
 
     advancedActionsChanged = QtCore.pyqtSignal()
-    advancedActions = ListAttribute(cards.AdvancedAction)
+    advancedActions = ListAttribute(assets.AdvancedAction)
     
     spellsChanged = QtCore.pyqtSignal()
-    spells = ListAttribute(cards.Spell)
+    spells = ListAttribute(assets.Spell)
     
     unitsChanged = QtCore.pyqtSignal()
-    units = ListAttribute(unitsModule.Unit)
+    units = ListAttribute(assets.Unit)
     
     monasteryOfferChanged = QtCore.pyqtSignal()
-    monasteryOffer = ListAttribute(cards.AdvancedAction)
+    monasteryOffer = ListAttribute(assets.AdvancedAction)
     
     commonSkillOfferChanged = QtCore.pyqtSignal()
-    commonSkillOffer = ListAttribute(cards.Card) # TODO: use skill
+    commonSkillOffer = ListAttribute(assets.Card) # TODO: use skill
     
-    advancedActionsPile = ListAttribute(cards.AdvancedAction)
-    spellsPile = ListAttribute(cards.Spell)
-    artifactsPile = ListAttribute(artifacts.Artifact)
-    regularUnitsPile = ListAttribute(unitsModule.RegularUnit)
-    eliteUnitsPile = ListAttribute(unitsModule.EliteUnit)
+    advancedActionsPile = ListAttribute(assets.AdvancedAction)
+    spellsPile = ListAttribute(assets.Spell)
+    artifactsPile = ListAttribute(assets.Artifact)
+    regularUnitsPile = ListAttribute(assets.RegularUnit)
+    eliteUnitsPile = ListAttribute(assets.EliteUnit)
     
     def __init__(self, match):
         super().__init__(match.stack)
@@ -60,11 +60,11 @@ class Shop(AttributeObject):
     @staticmethod
     def create(match):
         shop = Shop(match)
-        shop.advancedActionsPile = cards.AdvancedAction.all()
-        shop.spellsPile = cards.Spell.all()
-        shop.artifactsPile = artifacts.Artifact.all()
-        shop.regularUnitsPile = unitsModule.RegularUnit.all()
-        shop.eliteUnitsPile = unitsModule.EliteUnit.all()
+        shop.advancedActionsPile = assets.AdvancedAction.all()
+        shop.spellsPile = assets.Spell.all()
+        shop.artifactsPile = assets.Artifact.all()
+        shop.regularUnitsPile = assets.RegularUnit.all()
+        shop.eliteUnitsPile = assets.EliteUnit.all()
         for pile in [shop.advancedActionsPile, shop.spellsPile, shop.artifactsPile,
                      shop.regularUnitsPile, shop.eliteUnitsPile]:
             random.shuffle(pile)

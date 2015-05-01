@@ -19,7 +19,12 @@
 # You should have received a copy of the GNU General Public License
 # 
 
-from . import effects, cards, units
+from . import effects
+
+# import these so that all cards/units are registered
+from mageknight.assets import units
+from mageknight.assets import cards
+from mageknight.assets import artifacts
 
 from .source import ManaSource
 from .player import Player

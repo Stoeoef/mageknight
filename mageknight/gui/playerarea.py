@@ -25,7 +25,7 @@ from PyQt5.QtCore import Qt
 
 from mageknight import utils
 from mageknight.gui import stock
-from mageknight.core import artifacts, cards
+from mageknight.core import assets
 
 
 class PlayerArea(QtWidgets.QWidget):
@@ -123,14 +123,14 @@ class CardItem(stock.GraphicsPixmapObject):
         event.accept()
         
     def mouseReleaseEvent(self, event):
-        if isinstance(self.card, cards.ActionCard):
+        if isinstance(self.card, assets.ActionCard):
             if 295*self.scaleFactor() < event.pos().y() < 395*self.scaleFactor():
                 self.scene().cardClicked(self.card, 0)
             elif 395*self.scaleFactor() < event.pos().y() < 495*self.scaleFactor():
                 self.scene().cardClicked(self.card, 1)
             else: self.scene().cardClicked(self.card, None)
                 
-        elif isinstance(self.card, artifacts.Artifact):
+        elif isinstance(self.card, assets.Artifact):
             if 274*self.scaleFactor() < event.pos().y() < 384*self.scaleFactor():
                 self.scene().cardClicked(self.card, 0)
             elif 384*self.scaleFactor() < event.pos().y() < 488*self.scaleFactor():

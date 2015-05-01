@@ -23,14 +23,9 @@
 from PyQt5 import QtCore
 translate = QtCore.QCoreApplication.translate
 
-from mageknight import utils
-from mageknight.core import cards, effects
+from mageknight.core.assets import Artifact
+from mageknight.core import effects
 from mageknight.data import * # @UnusedWildImport
-
-
-class Artifact(cards.Card):
-    def pixmap(self):
-        return utils.getPixmap('mk/cards/artifacts/{}.jpg'.format(self.name))
 
 
 class RubyRing(Artifact):

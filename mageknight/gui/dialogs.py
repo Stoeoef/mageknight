@@ -99,12 +99,12 @@ def chooseManaColor(match=None, available=False, basic=True, fromList=None, defa
 
 
 def chooseCard(player, type=None, allowWounds=False):
-    from mageknight.core import cards as cardsModule
+    from mageknight.core import assets
     cards = []
     for card in player.handCards:
         if type is not None and not isinstance(card, type):
             continue
-        if isinstance(card, cardsModule.Wound) and not allowWounds:
+        if isinstance(card, assets.Wound) and not allowWounds:
             continue
         cards.append(card)
     if len(cards) > 0:

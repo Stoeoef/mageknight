@@ -57,8 +57,8 @@ class Hero(enum.Enum):
         elif self is Hero.Goldy:
             ids[ids.index('concentration')] = 'will_focus'
             
-        from mageknight.core import cards
-        return [cards.get(id) for id in ids]
+        from mageknight.core import assets
+        return [assets.get(id) for id in ids]
             
     
 class Tactic(enum.Enum):

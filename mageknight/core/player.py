@@ -27,7 +27,8 @@ from PyQt5 import QtCore
 from mageknight.attributes import * # @UnusedWildImport
 from mageknight.data import * # @UnusedWildImport
 from mageknight import stack
-from . import effects, units, cards
+from . import effects
+from mageknight.core import assets
 
 
 class Player(AttributeObject):
@@ -48,12 +49,12 @@ class Player(AttributeObject):
     
     cardCountChanged = QtCore.pyqtSignal()
     handCardsChanged = QtCore.pyqtSignal()
-    drawPile = ListAttribute(cards.Card, signal='cardCountChanged')
-    handCards = ListAttribute(cards.Card, signal='handCardsChanged') # is connected to cardCountChanged in __init__
-    discardPile = ListAttribute(cards.Card, signal='cardCountChanged')
+    drawPile = ListAttribute(assets.Card, signal='cardCountChanged')
+    handCards = ListAttribute(assets.Card, signal='handCardsChanged') # is connected to cardCountChanged in __init__
+    discardPile = ListAttribute(assets.Card, signal='cardCountChanged')
     
     unitsChanged = QtCore.pyqtSignal()
-    units = ListAttribute(units.Unit,
+    units = ListAttribute(assets.Unit,
                           itemAttributes=[('isReady', bool),
                                           ('wounds', int),
                                           ('isProtected', bool)])
@@ -139,9 +140,8 @@ class Player(AttributeObject):
         
     def addWounds(self, wounds, toDiscardPile=False):
         theList = self.handCards if not toDiscardPile else self.discardPile
-        from . import cards
         for _ in range(wounds):
-            theList.append(cards.get('wound'))
+            theList.append(assets.get('wound'))
                 
     def heal(self, fromDiscardPile=False):
         theList = self.handCards if not fromDiscardPile else self.discardPile

@@ -27,7 +27,7 @@ from PyQt5 import QtCore
 from mageknight import stack
 from mageknight.gui import dialogs
 from mageknight.data import * # @UnusedWildImport
-from . import effects, sites, units
+from . import effects, sites, assets
 from mageknight.attributes import * # @UnusedWildImport
     
 
@@ -410,7 +410,7 @@ class Combat(AttributeObject):
         assert self.currentReward is not None
         
         if reward.type is CombatRewardType.unit:
-            assert isinstance(item, units.Unit)
+            assert isinstance(item, assets.Unit)
             self.match._getUnit(self.match.currentPlayer, item, reward=True)
             
         else:
@@ -425,9 +425,4 @@ class Combat(AttributeObject):
         
         if len(self.rewards) == 0:
             self.match.setState(State.endOfTurn)
-
-            
-            
-                        
-            
         

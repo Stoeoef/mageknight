@@ -127,7 +127,7 @@ class Dungeon(AdventureSite):
     
     def enter(self, match, player):
         # TODO: night rules, no units, reenter
-        match.map.setEnemies(self, match.chooseEnemies([EnemyCategory.draconum]))
+        match.map.setEnemies(self, match.chooseEnemies([EnemyCategory.dungeon]))
         match.combat.begin(self)
         
     def addReward(self, match):
