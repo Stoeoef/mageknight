@@ -69,6 +69,10 @@ class Player(AttributeObject):
         self.crystals = {color: 0 for color in Mana.basicColors()}
         self.drawPile = hero.getDeedDeck()
         self.tactic = PlayerTactic(Tactic.earlyBird)
+        
+        # Debug code: use this to get a unit from the start
+        #self.units.append(assets.get("foresters"))
+        #self.units[0].owner = self
     
     @property
     def unitLimit(self):

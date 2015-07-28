@@ -24,7 +24,6 @@ import math
 
 from PyQt5 import QtCore
 
-from mageknight import stack
 from mageknight.gui import dialogs
 from mageknight.data import * # @UnusedWildImport
 from . import effects, sites, assets
@@ -83,15 +82,7 @@ class Combat(AttributeObject):
     def clearSelection(self):
         for enemy in self.enemies:
             self.enemies.setIsSelected(enemy, False)
-            
-    def _setUnitProtected(self, unit, isProtected):
-        unit.isProtected = isProtected
-        
-    def setUnitProtected(self, unit, isProtected):
-        if isProtected != unit.isProtected:
-            self.stack.push(stack.Call(self._setUnitProtected, unit, isProtected),
-                            stack.Call(self._setUnitProtected, unit, not isProtected))
-        
+
     def init(self, site=None, unitsAllowed=True, nightRules=False):
         """Initialize a combat. This sets the state to 'initCombat'. During this state (provokable) enemies
         may be added to the combat using 'addEnemies'. Finally, the combat must be started with 'start'.
@@ -106,7 +97,7 @@ class Combat(AttributeObject):
         self.currentReward = None
         self.effectsPlayed = False
         for unit in self.match.currentPlayer.units:
-            self.setUnitProtected(unit, False)
+            self.match.currentPlayer.units.setIsProtected(unit, False)
         self.match.setState(State.initCombat)
         
         if site is not None:
@@ -171,7 +162,7 @@ class Combat(AttributeObject):
             
             # Reset various stuff
             for unit in self.match.currentPlayer.units:
-                self.setUnitProtected(unit, False)
+                self.match.currentPlayer.units.setIsProtected(unit, False)
             self.enemies = []
             
     def checkEffectPlayable(self, effect=None, type=EffectType.unknown):
@@ -370,7 +361,7 @@ class Combat(AttributeObject):
             else: self.match.currentPlayer.removeUnit(unit)
             damage = max(0, damage - unit.armor)
         self.enemies.setDamage(enemy, damage)
-        self.setUnitProtected(unit, True) # cannot assign damage to this unit again
+        self.match.currentPlayer.units.setIsProtected(unit, True) # cannot assign damage to this unit again
         
         if damage == 0: # otherwise let the user assign damage to another unit or press "next"
             self.next()
