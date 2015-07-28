@@ -63,7 +63,7 @@ class Match(QtCore.QObject):
             pl.match = self
             self.map.addPerson(pl, hexcoords.HexCoords(0, 0))
 
-        self.beginRound()    
+        self.beginRound()
     
     def beginRound(self):
         self.source.reset()
@@ -83,7 +83,6 @@ class Match(QtCore.QObject):
             site.onBeginOfTurn(self, self.currentPlayer)
             site.onEnter(self, self.currentPlayer)
         self.revealNewInformation() # clear stack
-        self.combat.rewards.append(CombatReward(CombatRewardType.artifact, 1))
         
     def endTurn(self):
         if self.state is not State.endOfTurn:
@@ -307,7 +306,7 @@ class Match(QtCore.QObject):
         if terrain is None or not self.map.isTerrainPassable(terrain):
             raise InvalidAction("This field is not passable")
         
-        self.payMovePoints(self.map.terrainCosts[terrain])
+        self.payMovePoints(self.map.modifiedTerrainCosts(terrain))
         self.map.movePerson(player, coords)
         
         # Site

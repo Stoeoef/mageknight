@@ -68,22 +68,24 @@ class UniqueEffect(Effect):
 
 
 class PointsEffect(Effect):
+
     def __init__(self, points):
         assert points != 0
         self.points = points
-    
+
     def _changed(self, amount, **kwargs):
         newPoints = self.points + amount
         if newPoints == 0:
             return None
         elif newPoints < min(0, self.points): # allow negative numbers if bigger than current number 
             return False # cannot pay
-        else: return type(self)(newPoints, **kwargs)
+        else: 
+            return type(self)(newPoints, **kwargs)
         
     def _sameType(self, other):
         # if this returns true, effects can be combined. Must be reimplemented for Attack/Block types. 
         return type(self) is type(other)
-        
+
     def add(self, other):
         if self._sameType(other):
             return self._changed(other.points)
@@ -165,12 +167,68 @@ class AttackPoints(PointsEffect):
 
 class HealPoints(PointsEffect):
     title = translate("Effects", "Heal")
-    
+
     def __init__(self, points):
         super().__init__(points)
         if points < 0:
             raise ValueError("Heal points must not be negative.")
+
+class TerrainCostsOverwrite(Effect):
     
+    def __init__(self):
+        from collections import defaultdict
+        self.newBaseCosts = {}
+        # stores tuples (amount, minimum)
+        self.costReductions = defaultdict(list)
+
+    def add(self, other):
+        if isinstance(other, TerrainCostsOverwrite):
+            return self._change(other)
+        return False
+
+    def _change(self, other):
+        from copy import copy
+        result = copy(self)
+        for terrain, baseCosts in other.newBaseCosts.items():
+            result._overwriteBaseCosts(terrain, baseCosts)
+        for terrain, tpl in other.costReductions.items():
+            result.costReductions[terrain].extend(tpl)
+        return result
+
+    @staticmethod
+    def overwriteBaseCosts(terrain, newCosts):
+        result = TerrainCostsOverwrite()
+        result._overwriteBaseCosts(terrain, newCosts)
+        return result
+
+    def _overwriteBaseCosts(self, terrain, newCosts):
+        oldBase = self.newBaseCosts.get(terrain, newCosts)
+        self.newBaseCosts[terrain] = min(newCosts, oldBase)
+
+    @staticmethod
+    def reduceCosts(terrain, amount, minimum):
+        result = TerrainCostsOverwrite()
+        result._reduceCosts(terrain, amount, minimum)
+        return result
+
+    def _reduceCosts(self, terrain, amount, minimum):
+        self.costReductions[terrain].append((amount, minimum))
+            
+    def terrainCosts(self, terrain, baseCosts):
+        baseCosts = self.newBaseCosts.get(terrain, baseCosts)
+        # sort all reductions according to their z-coordinate. Apply
+        # them in this order to achieve maximum cost reduction
+        unsorted = self.costReductions[terrain]
+        sortedReductions = sorted(unsorted,
+                                  key=lambda tpl: tpl[1],
+                                  reverse=True)
+        for (amount, minimum) in sortedReductions:
+            baseCosts = max(minimum, baseCosts - amount)
+        return baseCosts
+
+    @property
+    def title(self):
+        return translate("Effects", "Cost Reduction") # TODO: more details
 
 class ManaTokens(Effect):
     def __init__(self, tokens=None):

@@ -24,7 +24,7 @@ translate = QtCore.QCoreApplication.translate
 
 from mageknight.data import * # @UnusedWildImport
 from mageknight.core import effects
-from mageknight.core.assets import BasicAction, ActionCard
+from mageknight.core.assets import BasicAction, ActionCard, AdvancedAction
 from mageknight.gui import dialogs
 
 
@@ -317,4 +317,36 @@ class WillFocus(BasicAction):
         
     def strongEffect(self, match, player):
         Concentration._strongEffect(self, match, player, 2)
+
+class FrostBridge(AdvancedAction):
+    name = 'frost_bridge'
+    title = translate('cards', 'Frost Bridge')
+    color = Mana.blue
+    effectType = EffectType.movement
+    
+    def basicEffect(self, match, player):
+        match.effects.add(effects.MovePoints(2))
+        match.map.overwriteTerrainCost(map.Terrain.swamp, 1)
         
+    def strongEffect(self, match, player):
+        match.effects.add(effects.MovePoints(4))
+        match.map.overwriteTerrainCost(map.Terrain.swamp, 1)
+        match.map.overwriteTerrainCost(map.Terrain.lake, 1)
+
+class PathFinding(AdvancedAction):
+    name = 'path_finding'
+    title = translate('cards', 'Path Finding')
+    color = Mana.green
+    effectType = EffectType.movement
+
+    def basicEffect(self, match, player):
+        match.effects.add(effects.MovePoints(2))
+        for terrain in map.Terrain:
+            if match.map.isTerrainPassable(terrain):
+                match.map.reduceTerrainCost(terrain, 1, 2)
+        
+    def strongEffect(self, match, player):
+        match.effects.add(effects.MovePoints(4))
+        for terrain in map.Terrain:
+            if match.map.isTerrainPassable(terrain):
+                match.map.overwriteTerrainCost(terrain, 2)

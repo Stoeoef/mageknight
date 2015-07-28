@@ -27,6 +27,7 @@ import random
 from mageknight import hexcoords
 from mageknight.data import *  # @UnusedWildImport
 from . import basemap, sites
+from .effects import TerrainCostsOverwrite
 
 
 class Map(basemap.Map):
@@ -43,7 +44,6 @@ class Map(basemap.Map):
     """
     def __init__(self, match, shape):
         super().__init__(match, shape)
-        self.resetTerrainCosts()
         self.tilePile = []
     
     @staticmethod
@@ -52,10 +52,10 @@ class Map(basemap.Map):
         map.tilePile = TilePile(7, 2, 2)
         if shape is MapShape.wedge:
             map.addTile(Tile('A'), hexcoords.HexCoords(0,0))
-            #map.addTile(map.tilePile.pop(), hexcoords.HexCoords(1,3))
-            #map.addTile(map.tilePile.pop(), hexcoords.HexCoords(3,2))
-            map.addTile(Tile('7'), hexcoords.HexCoords(1,3))
-            map.addTile(Tile('6'), hexcoords.HexCoords(3,2))
+            map.addTile(map.tilePile.pop(), hexcoords.HexCoords(1,3))
+            map.addTile(map.tilePile.pop(), hexcoords.HexCoords(3,2))
+            # map.addTile(Tile('7'), hexcoords.HexCoords(1,3))
+            # map.addTile(Tile('6'), hexcoords.HexCoords(3,2))
         else:
             raise NotImplementedError()
         return map
@@ -68,9 +68,14 @@ class Map(basemap.Map):
             if site is not None: # TODO: remove debugging code
                 self._addSite(site)
     
-    def resetTerrainCosts(self):
-        """Reset cost of all terrains to their default values."""
-        self.terrainCosts = {
+    def modifiedTerrainCosts(self, terrain):
+        overwrite = self.match.effects.find(TerrainCostsOverwrite)
+        if overwrite != None:
+            return overwrite.terrainCosts(terrain, self.baseTerrainCosts(terrain))
+        return self.baseTerrainCosts(terrain)
+
+    def baseTerrainCosts(self, terrain):
+        return {
             Terrain.plains: 2,
             Terrain.hills: 3,
             Terrain.forest: 3 if self.match.round.type == RoundType.day else 5,
@@ -78,18 +83,21 @@ class Map(basemap.Map):
             Terrain.desert: 5 if self.match.round.type == RoundType.day else 3,
             Terrain.swamp: 5,
             Terrain.city: 2,
-        }
-        
+        }.get(terrain)
+
+      
     def isTerrainPassable(self, terrain):
         """Return whether the given terrain is currently passable for the current player. This might change
         as an effect of e.g. spells."""
         assert isinstance(terrain, Terrain)
-        return terrain in self.terrainCosts
+        return self.modifiedTerrainCosts(terrain) != None
         
     def reduceTerrainCost(self, terrain, amount, minimum):
         """Reduce cost of *terrain* by *amount*, to a minimum of *minimum*."""
-        if terrain in self.terrainCosts: # should always be the case
-            self.setTerrainCost(terrain, max(minimum, self.terrainCosts[terrain] - amount))
+        self.match.effects.add(TerrainCostsOverwrite.reduceCosts(terrain, amount, minimum))
+
+    def overwriteTerrainCost(self, terrain, value):
+        self.match.effects.add(TerrainCostsOverwrite.overwriteBaseCosts(terrain, value))
 
     def revealEnemies(self, site):
         self.match.revealNewInformation()
