@@ -122,7 +122,7 @@ class Stock(QtWidgets.QGraphicsObject):
         pass
     
     def _moveItemToPos(self, item, x, y):
-        animation = QtCore.QPropertyAnimation(item, "pos", self)
+        animation = QtCore.QPropertyAnimation(item, b"pos", self)
         self._anims.addAnimation(animation)
         animation.setDuration(500)
         animation.setEndValue(QtCore.QPointF(x, y))

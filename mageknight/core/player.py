@@ -135,7 +135,7 @@ class Player(AttributeObject):
     def knockOut(self):
         """Discard all non-wound cards from the hand."""
         for card in list(self.handCards):
-            if not card.isWound():
+            if not card.isWound:
                 self.discard(card)
         
     def addWounds(self, wounds, toDiscardPile=False):

@@ -24,7 +24,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt 
 
 from mageknight import utils
-from mageknight.data import Mana, AttackRange
+from mageknight.data import Mana, AttackRange, InvalidAction
 
 
 class TopBar(QtWidgets.QWidget):
@@ -130,21 +130,31 @@ class CheatBar(QtWidgets.QToolBar):
                            effects.BlockPoints, effects.AttackPoints]:
             effect = pointsType(4)
             action = QtWidgets.QAction(effect.title[:2], self)
-            action.triggered.connect(functools.partial(match.effects.add, effect))
+            action.triggered.connect(functools.partial(self._clicked, match.effects.add, effect))
             self.addAction(action)
             
         effect = effects.AttackPoints(4, range=AttackRange.siege)
         action = QtWidgets.QAction('Si', self)
-        action.triggered.connect(functools.partial(match.effects.add, effect))
+        action.triggered.connect(functools.partial(self._clicked, match.effects.add, effect))
         self.addAction(action)
             
         action = QtWidgets.QAction('Ma', self)
-        action.triggered.connect(self._addMana)
+        action.triggered.connect(functools.partial(self._clicked, self._addMana))
         self.addAction(action)
         
         action = QtWidgets.QAction('Ca', self)
-        action.triggered.connect(self._drawCard)
+        action.triggered.connect(functools.partial(self._clicked, self.match.currentPlayer.drawCards, 1))
         self.addAction(action)
+        
+    def _clicked(self, method, *args):
+        self.match.stack.beginMacro()
+        args = args[:-1] # hack: remove the last argument which comes from the "triggered" signal
+        try:
+            method(*args)
+            self.match.stack.endMacro()
+        except InvalidAction as e:
+            print(e)
+            self.match.stack.abortMacro()
         
     def _addMana(self):
         from mageknight.gui import dialogs
@@ -152,7 +162,4 @@ class CheatBar(QtWidgets.QToolBar):
         color = dialogs.chooseManaColor(self.match, basic=False)
         if color is not None:
             self.match.effects.add(effects.ManaTokens(color))
-        
-    def _drawCard(self):
-        self.match.currentPlayer.drawCards(1)
         
