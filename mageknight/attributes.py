@@ -304,7 +304,7 @@ class UndoList(list):
     def __setitem__(self, index, item):
         if not isinstance(item, self._itemType):
             raise TypeError("All items of list attribute must be of type '{}', not {}."
-                            .format(self.itemType, item))
+                            .format(self._itemType, item))
         oldItem = self[index]
         self._stack.push(Call(self._setItem, index, item),
                          Call(self._setItem, index, oldItem))
@@ -317,7 +317,7 @@ class UndoList(list):
     def append(self, item):
         if not isinstance(item, self._itemType):
             raise TypeError("All items of list attribute must be of type '{}', not {}."
-                            .format(self.itemType, item))
+                            .format(self._itemType, item))
         index = len(self)
         self._stack.push(Call(self._insert, index, item),
                          Call(self._delItem, index))
@@ -333,7 +333,7 @@ class UndoList(list):
         for item in items:
             if not isinstance(item, self._itemType):
                 raise TypeError("All items of list attribute must be of type '{}', not {}."
-                                .format(self.itemType, item))
+                                .format(self._itemType, item))
         if len(items) > 0:
             start = len(self)
             end = start + len(items)
@@ -343,7 +343,7 @@ class UndoList(list):
     def insert(self, index, item):
         if not isinstance(item, self._itemType):
             raise TypeError("All items of list attribute must be of type '{}', not {}."
-                            .format(self.itemType, item))
+                            .format(self._itemType, item))
         self._stack.push(Call(self._insert, index, item),
                          Call(self._delItem, index))
 

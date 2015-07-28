@@ -89,7 +89,8 @@ class PlayerAreaScene(QtWidgets.QGraphicsScene):
         slotDifference = len(self.units.items()) - self.player.unitLimit
         if slotDifference > 0: # too many slot items
             for _ in range(slotDifference):
-                self.units.removeItemAt(self.player.unitCount) # always remove the first slot
+                unitCount = len(self.player.units)
+                self.units.removeItemAt(unitCount) # always remove the first slot
         elif slotDifference < 0:
             for _ in range(-slotDifference):
                 self.units.addItem(UnitSlot(self.player, self.units.objectSize))

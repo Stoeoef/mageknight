@@ -69,6 +69,10 @@ class Player(AttributeObject):
         self.crystals = {color: 0 for color in Mana.basicColors()}
         self.drawPile = hero.getDeedDeck()
         self.tactic = PlayerTactic(Tactic.earlyBird)
+        
+        # Debug code: use this to get a unit from the start
+        #self.units.append(assets.get("foresters"))
+        #self.units[0].owner = self
     
     @property
     def unitLimit(self):
@@ -135,13 +139,15 @@ class Player(AttributeObject):
     def knockOut(self):
         """Discard all non-wound cards from the hand."""
         for card in list(self.handCards):
-            if not card.isWound():
+            if not card.isWound:
                 self.discard(card)
         
     def addWounds(self, wounds, toDiscardPile=False):
         theList = self.handCards if not toDiscardPile else self.discardPile
         for _ in range(wounds):
             theList.append(assets.get('wound'))
+        # Note: whether a player is knocked out depends on the number of wounds received the current combat.
+        # Thus this is decided in the combat code.
                 
     def heal(self, fromDiscardPile=False):
         theList = self.handCards if not fromDiscardPile else self.discardPile
