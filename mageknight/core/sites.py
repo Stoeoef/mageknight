@@ -63,7 +63,7 @@ class FortifiedSite(SiteOnMap):
         if self.owner is None:
             player.reputation -= 1
             match.map.revealEnemies(self)
-            match.combat.begin(self, maraudersProvokable=True)
+            match.combat.init(self) # use init instead of start, so that marauding enemies may be added
         # TODO: conquer keeps of other players
     
     def updateActions(self, match, player):
@@ -86,13 +86,18 @@ class AdventureSite(SiteOnMap):
             match.actions.add('enter', translate('sites', "Enter"), self.enter)
             
     def onCombatEnd(self, match, player):
-        # note: owner does not change when a dungeon/tomb is reentered
         if self.owner is None and len(self.enemies) == 0:
+            # entered for the first time
             match.map.setOwner(self, player)
             self.addReward(match) # defined in subclasses
         else:
+            # reentered
             # remove enemies so that new enemies are chosen at the next fight
             match.map.setEnemies(self, [])
+            
+    def addReward(self):
+        """Implemented in subclasses to add the reward. This is not called when the site is re-entered."""
+        pass
 
 
 class CrystalMines(SiteOnMap):
@@ -126,9 +131,8 @@ class Dungeon(AdventureSite):
     canReenter = True
     
     def enter(self, match, player):
-        # TODO: night rules, no units, reenter
         match.map.setEnemies(self, match.chooseEnemies([EnemyCategory.dungeon]))
-        match.combat.begin(self)
+        match.combat.start(self, unitsAllowed=False, nightRules=True)
         
     def addReward(self, match):
         if random.randint(1,3) == 1:
@@ -154,7 +158,7 @@ class MageTower(FortifiedSite):
         self.enemies = [UnknownEnemy(EnemyCategory.mageTower)]
         
     def onCombatEnd(self, match, player):
-        super().onCombatEnd()
+        super().onCombatEnd(match, player)
         if len(self.enemies) == 0:
             match.combat.addReward(CombatReward(CombatRewardType.spell))
 
@@ -206,6 +210,7 @@ class Monastery(SiteOnMap):
     type = Site.monastery
     
     def updateActions(self, match, player):
+        # No actions if monastery has an owner (it was burned)
         if self.owner is None and match.state == State.movement:
             match.actions.add('interact', translate('sites', "Interact"), self.interact)
             match.actions.add('burn', translate('sites', "Burn monastery"), self.burn)
@@ -221,7 +226,7 @@ class Monastery(SiteOnMap):
     def burn(self, match, player):
         player.reputation -= 3
         match.map.setEnemies(self, match.chooseEnemies([EnemyCategory.mageTower]))
-        match.combat.begin(self) # TODO: no units
+        match.combat.start(self, unitsAllowed=False)
         match.revealNewInformation()
         
     def onCombatEnd(self, match, player):
@@ -239,7 +244,7 @@ class MonsterDen(AdventureSite):
             
     def enter(self, match, player):
         match.map.setEnemies(self, match.chooseEnemies([EnemyCategory.dungeon]))
-        match.combat.begin(self)
+        match.combat.start(self)
         
     def addReward(self, match):
         match.combat.addReward(CombatReward(CombatRewardType.crystal, 2))
@@ -251,7 +256,7 @@ class SpawningGrounds(AdventureSite):
             
     def enter(self, match, player):
         match.map.setEnemies(self, match.chooseEnemies([EnemyCategory.dungeon, EnemyCategory.dungeon]))
-        match.combat.begin(self)
+        match.combat.start(self)
         
     def addReward(self, match):
         match.combat.addReward(CombatReward(CombatRewardType.crystal, 3))
@@ -263,9 +268,8 @@ class Tomb(AdventureSite):
     canReenter = True
     
     def enter(self, match, player):
-        # TODO: night rules, no units, reenter
         match.map.setEnemies(self, match.chooseEnemies([EnemyCategory.draconum]))
-        match.combat.begin(self)   
+        match.combat.start(self, unitsAllowed=False, nightRules=True)   
          
     def addReward(self, match):
         match.combat.addReward(CombatReward(CombatRewardType.spell))

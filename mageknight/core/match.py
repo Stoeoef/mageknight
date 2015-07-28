@@ -26,7 +26,7 @@ from PyQt5 import QtCore
 from mageknight import stack, hexcoords
 from mageknight.data import *  # @UnusedWildImport
 from mageknight.core import effects, cards, units
-from mageknight.core import source, player, map, effectlist, shop, combat, actions  # @Reimport
+from mageknight.core import source, player, map, effectlist, shop, combat, actions, assets  # @Reimport
 from mageknight.gui import dialogs
 from .decorators import action
 
@@ -321,17 +321,25 @@ class Match(QtCore.QObject):
         # Marauding enemies
         oldMarauderSites = set(self.map.adjacentMarauderSites(pos))
         newMarauderSites = set(self.map.adjacentMarauderSites(coords))
-        marauders = newMarauderSites.intersection(oldMarauderSites)
-        if len(marauders) > 0:
+        provokedMarauderSites = newMarauderSites.intersection(oldMarauderSites)
+        provokableMarauderSites = newMarauderSites - provokedMarauderSites
+                    
+        if len(provokedMarauderSites) > 0:
             if not self.state.inCombat:
-                self.combat.begin(None, maraudersProvokable=True)
-            for site in marauders:
+                self.combat.init()
+            for site in provokedMarauderSites:
                 # these enemies are not provokable, they must be fought
-                self.combat.setEnemiesProvokable(site.enemies, False)
-                
-        elif len(newMarauderSites) > 0:
-            self.actions.add('marauding', self.tr("Fight marauding enemies"), self.fightMaraudingEnemies)
-        else: self.actions.remove('marauding')
+                self.combat.addEnemies(site)
+        
+        if len(provokableMarauderSites) > 0:
+            if not self.state.inCombat:
+                self.actions.add('marauding', self.tr("Fight marauding enemies"), self.fightMaraudingEnemies)
+            else:
+                for site in provokableMarauderSites:
+                    self.combat.addEnemies(site, provokable=True)
+            
+        if self.state is State.initCombat:
+            self.combat.start()
         
         # Explore
         if self.state is State.movement and self.map.canExplore(coords):
@@ -341,11 +349,10 @@ class Match(QtCore.QObject):
     def fightMaraudingEnemies(self):
         coords = self.map.persons[self.currentPlayer]
         marauders = self.map.adjacentMarauderSites(coords)
-        if len(marauders) == 1:
-            self.combat.begin(marauders[0])
-        elif len(marauders) > 1:
-            # Let the user choose which marauders to provoke
-            self.combat.begin(None, maraudersProvokable=True)
+        self.combat.init()
+        for site in marauders:
+            self.combat.addEnemies(site, provokable=True)
+        self.combat.start()
     
     def updateActions(self):
         self.actions.clear()
@@ -368,7 +375,7 @@ class Match(QtCore.QObject):
         
     @action
     def activateUnit(self, player, unit, ability):
-        assert isinstance(unit, units.Unit)
+        assert isinstance(unit, assets.Unit)
         if not unit.isWounded:
             assert ability in unit.abilities
             self.checkEffectPlayable() # TODO action type

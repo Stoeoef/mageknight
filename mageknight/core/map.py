@@ -54,8 +54,8 @@ class Map(basemap.Map):
             map.addTile(Tile('A'), hexcoords.HexCoords(0,0))
             #map.addTile(map.tilePile.pop(), hexcoords.HexCoords(1,3))
             #map.addTile(map.tilePile.pop(), hexcoords.HexCoords(3,2))
-            map.addTile(Tile('7'), hexcoords.HexCoords(1,3))
-            map.addTile(Tile('6'), hexcoords.HexCoords(3,2))
+            map.addTile(Tile('5'), hexcoords.HexCoords(1,3))
+            map.addTile(Tile('4'), hexcoords.HexCoords(3,2))
         else:
             raise NotImplementedError()
         return map

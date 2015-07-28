@@ -32,11 +32,11 @@ from mageknight.attributes import * # @UnusedWildImport
     
 
 class EnemyInCombat:
-    def __init__(self, enemy, site):
+    def __init__(self, enemy, site, isProvokable):
         self.enemy = enemy
         self.site = site
         self.effects = []
-        self.isProvokable = False
+        self.isProvokable = isProvokable
         self.isAlive = True
         self.isSelected = False
         self.isBlocked = False
@@ -79,16 +79,6 @@ class Combat(AttributeObject):
         
     def selectedEnemies(self):
         return [enemy for enemy in self.enemies if enemy.isSelected]
-        
-    def setEnemiesProvokable(self, enemies, isProvokable):
-        for e in enemies:
-            self.enemies.setIsProvokable(e, isProvokable)
-            if not isProvokable:
-                self.enemies.setIsSelected(e, True)
-        
-        # TODO: Why is this necessary?
-        if self.match.state is State.provokeMarauders and not any(e.isProvokable for e in self.enemies):
-            self.setState(State.rangeAttack)
             
     def clearSelection(self):
         for enemy in self.enemies:
@@ -102,40 +92,88 @@ class Combat(AttributeObject):
             self.stack.push(stack.Call(self._setUnitProtected, unit, isProtected),
                             stack.Call(self._setUnitProtected, unit, not isProtected))
         
-    def begin(self, site, maraudersProvokable=False):
-        """Begin a combat against the given site. This is not necessarily the site on which the player is
-        standing: It is e.g. possible to fight against a marauding enemy while standing on a monastery.
-        When fighting against multiple enemies, call this method several times.
-        """ 
+    def init(self, site=None, unitsAllowed=True, nightRules=False):
+        """Initialize a combat. This sets the state to 'initCombat'. During this state (provokable) enemies
+        may be added to the combat using 'addEnemies'. Finally, the combat must be started with 'start'.
+        For the arguments see 'start'.
+        """
         assert not self.match.state.inCombat
-        
-        if site is not None:
-            self.enemies = [EnemyInCombat(enemy, site) for enemy in site.enemies]
-        else: self.enemies = [] # player has to engage marauding enemies
-            
+        # TODO: support unitsAllowed, nightRules
+                    
         # Reset various stuff
+        self.enemies = []
         self.rewards = []
         self.currentReward = None
         self.effectsPlayed = False
         for unit in self.match.currentPlayer.units:
             self.setUnitProtected(unit, False)
+        self.match.setState(State.initCombat)
         
-        # Marauders
-        if not maraudersProvokable:
-            self.setState(State.rangeAttack)
-        else:
-            coords = self.match.map.persons[self.match.currentPlayer]
-            provokable = self.match.map.adjacentMarauderSites(coords)
-            if len(provokable) > 0:
-                for site in provokable:
-                    enemies = [EnemyInCombat(enemy, site) for enemy in site.enemies]
-                    self.enemies.extend(enemies)
-                    self.setEnemiesProvokable(enemies, True)
-                self.setState(State.provokeMarauders)
-            else: self.setState(State.rangeAttack) # should not happen
+        if site is not None:
+            self.addEnemies(site)
         
+    def addEnemies(self, site, provokable=False):
+        assert self.match.state is State.initCombat
+        enemies = [EnemyInCombat(enemy, site, provokable) for enemy in site.enemies]
+        self.enemies.extend(enemies)
+        
+    def start(self, site=None, unitsAllowed=True, nightRules=False):
+        """Start a combat.
+            - site: If given, all enemies from this site will be added to the combat.
+            - unitsAllowed: whether units take part 
+            - nightRules: whether night rules apply during this combat (dungeon, tomb)
+        """
+        if self.match.state is not State.initCombat:
+            self.init(site, unitsAllowed=unitsAllowed, nightRules=nightRules)
+        # Note: if no enemies are provokable, this will skip to the next state automatically
+        self.setState(State.provokeMarauders)
         self.combatStarted.emit()
         
+    def setState(self, state):
+        """Set the match state. During combat, use this instead of match.setState. This method will skip
+        unnecessary states (e.g. skip to combatEnd, if all enemies are defeated).
+        """ 
+        self.clearSelection()
+        self.effectsPlayed = False
+        
+        # Whenever a state is not needed for some reason, we skip to the next state instead
+        if state is State.provokeMarauders and not any(e.isProvokable for e in self.enemies):
+            state = State.rangeAttack
+        if not any(enemy.isAlive for enemy in self.enemies):
+            state = State.combatEnd
+        if state is State.block and not any(enemy.isAttacking for enemy in self.enemies):
+            state = State.attack
+        if state is State.assignDamage and \
+                not any(enemy.isAttacking and enemy.damage > 0 for enemy in self.enemies):
+            state = State.attack
+        
+        self.match.setState(state)
+        
+        # State specific actions (typically we initialize the selection)
+        if state is State.provokeMarauders:
+            self.match.setState(state)
+            for enemy in self.enemies:
+                self.enemies.setIsSelected(enemy, not enemy.isProvokable)
+            
+        if self.match.state is not State.combatEnd:
+            # If only one enemy is active, select it
+            activeEnemies = [e for e in self.enemies if self.isEnemyActive(e)]
+            if len(activeEnemies) == 1:
+                self.enemies.setIsSelected(activeEnemies[0], True)
+        else:
+            sites = set()
+            for enemy in self.enemies:
+                sites.add(enemy.site)
+            for site in sites:
+                # Rewards will be added here
+                site.onCombatEnd(self.match, self.match.currentPlayer)
+            self.match.updateActions() # is often different after site.onCombatEnd
+            
+            # Reset various stuff
+            for unit in self.match.currentPlayer.units:
+                self.setUnitProtected(unit, False)
+            self.enemies = []
+            
     def checkEffectPlayable(self, effect=None, type=EffectType.unknown):
         self.effectsPlayed = True
         
@@ -179,46 +217,6 @@ class Combat(AttributeObject):
 
                 elif state != State.attack:
                     raise InvalidAction("Cannot play attack points now")
-        
-    def setState(self, state):
-        self.clearSelection()
-        self.effectsPlayed = False
-        
-        # Contrary to other states, State.provokeMarauders is entered only once (or not at all)
-        if state is State.provokeMarauders:
-            self.match.setState(state)
-            for enemy in self.enemies:
-                self.enemies.setIsSelected(enemy, not enemy.isProvokable)
-            return
-                
-        # Skip states under certain circumstances
-        if not any(enemy.isAlive for enemy in self.enemies):
-            state = State.combatEnd
-        if state == State.block and not any(enemy.isAttacking for enemy in self.enemies):
-            state = State.attack
-        if state == State.assignDamage and \
-                not any(enemy.isAttacking and enemy.damage > 0 for enemy in self.enemies):
-            state = State.attack
-        
-        self.match.setState(state)
-        if self.match.state is not State.combatEnd:
-            # If only one enemy is active, select it
-            activeEnemies = [e for e in self.enemies if self.isEnemyActive(e)]
-            if len(activeEnemies) == 1:
-                self.enemies.setIsSelected(activeEnemies[0], True)
-        else:
-            sites = set()
-            for enemy in self.enemies:
-                sites.add(enemy.site)
-            for site in sites:
-                # Rewards will be added here
-                site.onCombatEnd(self.match, self.match.currentPlayer)
-            self.match.updateActions() # is often different after site.onCombatEnd
-            
-            # Reset various stuff
-            for unit in self.match.currentPlayer.units:
-                self.setUnitProtected(unit, False)
-            self.enemies = []
     
     def isEnemyActive(self, enemy):
         """Return whether the given enemy can be targeted in the current phase

@@ -47,18 +47,20 @@ class State(enum.Enum):
     explore = 4      # while choosing a new tile location
     
     # Combat states
-    provokeMarauders = 10 # "invite" additional enemies at the beginning of a fight
-    rangeAttack = 11
-    block = 12
-    assignDamage = 13
-    attack = 14
-    combatRewards = 15
+    initCombat = 10 # technical state during which (marauding) enemies might be added
+    provokeMarauders = 11 # if provokable enemies were added, let the user choose which enemies to fight
+    rangeAttack = 12
+    block = 13
+    assignDamage = 14
+    attack = 15
+    combatRewards = 16
     
     endOfTurn = 20
     
     @staticmethod
     def combatStates():
-        return (State.provokeMarauders, State.rangeAttack, State.block, State.assignDamage, State.attack)
+        return (State.initCombat, State.provokeMarauders, State.rangeAttack, State.block,
+                State.assignDamage, State.attack, State.combatRewards)
     
     @property
     def inCombat(self):
