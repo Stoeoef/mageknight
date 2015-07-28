@@ -25,7 +25,7 @@ from PyQt5 import QtCore
 
 from mageknight import stack, hexcoords
 from mageknight.data import *  # @UnusedWildImport
-from mageknight.core import effects, cards, units
+from mageknight.core import effects, cards
 from mageknight.core import source, player, map, effectlist, shop, combat, actions, assets  # @Reimport
 from mageknight.gui import dialogs
 from .decorators import action

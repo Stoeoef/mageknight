@@ -146,6 +146,8 @@ class Player(AttributeObject):
         theList = self.handCards if not toDiscardPile else self.discardPile
         for _ in range(wounds):
             theList.append(assets.get('wound'))
+        # Note: whether a player is knocked out depends on the number of wounds received the current combat.
+        # Thus this is decided in the combat code.
                 
     def heal(self, fromDiscardPile=False):
         theList = self.handCards if not fromDiscardPile else self.discardPile

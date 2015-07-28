@@ -68,6 +68,7 @@ class Combat(AttributeObject):
                                             ('items', list)])
     effectsPlayed = BoolAttribute()
     currentReward = Attribute(CombatReward)
+    woundsAssignedToHero = IntAttribute() # count wounds received in this combat (for knock out)
     
     def __init__(self, match):
         super().__init__(match.stack)
@@ -96,6 +97,7 @@ class Combat(AttributeObject):
         self.rewards = []
         self.currentReward = None
         self.effectsPlayed = False
+        self.woundsAssignedToHero = 0
         for unit in self.match.currentPlayer.units:
             self.match.currentPlayer.units.setIsProtected(unit, False)
         self.match.setState(State.initCombat)
@@ -336,9 +338,10 @@ class Combat(AttributeObject):
         
         woundCount = math.ceil(enemy.damage / player.armor)
         player.addWounds(woundCount)
+        self.woundsAssignedToHero += woundCount
         if enemy.poison:
             player.addWounds(woundCount, toDiscardPile=True)
-        if enemy.paralyze:
+        if enemy.paralyze or self.woundsAssignedToHero >= self.match.currentPlayer.cardLimit:
             player.knockOut()
         self.enemies.setDamage(enemy, 0)
         
