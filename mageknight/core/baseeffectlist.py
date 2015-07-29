@@ -35,47 +35,50 @@ class EffectList(QtCore.QObject):
         self._list = []
     
     def add(self, effect):
-        self.match.stack.push(stack.Call(self._add, effect),
-                              stack.Call(self._remove, effect))
-        
+        self._modify(effect, "add")
+
     def remove(self, effect):
-        self.match.stack.push(stack.Call(self._remove, effect),
-                              stack.Call(self._add, effect))
-    
-    def clear(self):
-        self._list = []
-        self.changed.emit()
-        
-    def _add(self, effect):
+        self._modify(effect, "remove")
+
+    def _modify(self, effect, func):
         # first try to combine the effect with an existing one:
         for i, e in enumerate(self._list):
-            new = e.add(effect)
+            new = getattr(e, func)(effect)
             if new is False:
                 continue
             elif new is not None:
-                self._list[i] = new
-            else: del self._list[i]
-            self.changed.emit()
-            return
+                old = self._list[i]
+                assert old != new
+                self.match.stack.push(stack.Call(lambda: self._assignIth(i, new)),
+                                      stack.Call(lambda: self._assignIth(i, old)))
+            else:
+                old = self._list[i]
+                self.match.stack.push(stack.Call(lambda: self._popIth(i)),
+                                      stack.Call(lambda: self._insertIth(i, old)))
+            break
         else:
             # insert at the right position
             i = 0
             while i < len(self._list) and self._list[i] < effect:
                 i += 1
-            self._list.insert(i, effect)
-            self.changed.emit()
-        
-    def _remove(self, effect):
-        for i, e in enumerate(self._list):
-            new = e.remove(effect)
-            if new is False:
-                continue
-            elif new is not None:
-                self._list[i] = new
-            else: del self._list[i]
-            self.changed.emit()
-            return True
-        else: False
+            self.match.stack.push(stack.Call(lambda: self._insertIth(i, effect)),
+                                  stack.Call(lambda: self._popIth(i)))        
+
+    def _insertIth(self, i, value):
+        self._list.insert(i, value)
+        self.changed.emit()
+
+    def _popIth(self, i):
+        self._list.pop(i)
+        self.changed.emit()
+
+    def _assignIth(self, i, value):
+        self._list[i] = value
+        self.changed.emit()
+
+    def clear(self):
+        self._list = []
+        self.changed.emit()
         
     def __iter__(self):
         return iter(self._list)
