@@ -340,11 +340,6 @@ class Match(QtCore.QObject):
         if self.state is State.initCombat:
             self.combat.start()
         
-        # Explore
-        if self.state is State.movement and self.map.canExplore(coords):
-            self.actions.add('explore', self.tr("Explore"),
-                             functools.partial(self.setState, State.explore))
-    
     def fightMaraudingEnemies(self):
         coords = self.map.persons[self.currentPlayer]
         marauders = self.map.adjacentMarauderSites(coords)
@@ -361,6 +356,13 @@ class Match(QtCore.QObject):
         if self.state in [State.movement, State.interaction, State.combatEnd,
                           State.endOfTurn, State.combatRewards]:
             self.actions.add('endturn', self.tr("End turn"), self.endTurn)
+        # Explore
+        coords = self.map.persons[self.currentPlayer]
+        if self.state is State.movement and self.map.canExplore(coords):
+            self.actions.add('explore', self.tr("Explore"),
+                             functools.partial(self.setState, State.explore))
+    
+            
     
     def startInteraction(self):
         if self.state is not State.movement:
