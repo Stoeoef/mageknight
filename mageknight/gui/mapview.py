@@ -98,6 +98,7 @@ class MapModel(QtWidgets.QGraphicsScene):
             tiles = self.map.getExplorableTiles(coords)
             for tile in tiles:
                 item = ExploreItem(tile)
+                self._exploreItems.append(item)
                 self.addItem(item)
     
     def _shiftItemsAt(self, coords):
