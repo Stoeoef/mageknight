@@ -186,9 +186,6 @@ class TerrainCostsOverwrite(Effect):
             return self._change(other)
         return False
 
-    def remove(self, other):
-        raise NotImplementedError() # TODO
-
     def _change(self, other):
         from copy import copy
         result = copy(self)
