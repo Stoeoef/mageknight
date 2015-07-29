@@ -119,7 +119,8 @@ class Draconum(SiteOnMap):
         self.enemies = match.chooseEnemies([EnemyCategory.draconum])
         
     def onEnter(self, match, player):
-        raise InvalidAction("Cannot enter a space occupied by a draconum.")
+        if (self.enemies):
+            raise InvalidAction("Cannot enter a space occupied by a draconum.")
     
     def onEnemyKilled(self, match, player, enemy):
         super().onEnemyKilled(match, player, enemy)
@@ -199,7 +200,8 @@ class MaraudingOrcs(SiteOnMap):
         self.enemies = match.chooseEnemies([EnemyCategory.maraudingOrcs])
         
     def onEnter(self, match, player):
-        raise InvalidAction("Cannot enter a space occupied by marauding orcs.")
+        if self.enemies:
+            raise InvalidAction("Cannot enter a space occupied by marauding orcs.")
     
     def onEnemyKilled(self, match, player, enemy):
         super().onEnemyKilled(match, player, enemy)

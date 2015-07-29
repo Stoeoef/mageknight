@@ -324,13 +324,21 @@ class Match(QtCore.QObject):
         provokableMarauderSites = newMarauderSites - provokedMarauderSites
                     
         if len(provokedMarauderSites) > 0:
-            if not self.state.inCombat:
-                self.combat.init()
+            enemyCount = 0
             for site in provokedMarauderSites:
-                # these enemies are not provokable, they must be fought
-                self.combat.addEnemies(site)
-        
-        if len(provokableMarauderSites) > 0:
+                enemyCount += len(site.enemies)
+
+            if enemyCount:
+                if not self.state.inCombat:
+                    self.combat.init()
+                for site in provokedMarauderSites:
+                    # these enemies are not provokable, they must be fought
+                    self.combat.addEnemies(site)
+                    
+        provokableEnemies = 0
+        for site in provokableMarauderSites:
+            provokableEnemies += len(site.enemies)
+        if provokableEnemies:
             if not self.state.inCombat:
                 self.actions.add('marauding', self.tr("Fight marauding enemies"), self.fightMaraudingEnemies)
             else:
@@ -339,7 +347,7 @@ class Match(QtCore.QObject):
             
         if self.state is State.initCombat:
             self.combat.start()
-        
+
     def fightMaraudingEnemies(self):
         coords = self.map.persons[self.currentPlayer]
         marauders = self.map.adjacentMarauderSites(coords)
