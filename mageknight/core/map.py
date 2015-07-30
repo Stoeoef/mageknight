@@ -99,8 +99,7 @@ class Map(basemap.Map):
         safe space."""
         terrain = self.terrainAt(coords)
         print("terrain: ", terrain)
-        if terrain in [Terrain.lake, Terrain.mountain,
-                       Terrain.forest]: # TODO: Remove
+        if terrain in [Terrain.lake, Terrain.mountain]:
             return False
         site = self.siteAt(coords)
         if site is not None:
