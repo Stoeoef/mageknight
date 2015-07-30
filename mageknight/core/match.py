@@ -88,7 +88,6 @@ class Match(QtCore.QObject):
     def endTurn(self):
         if self.state is not State.endOfTurn:
 
-            print("call")
             site = self.map.siteAtPlayer(self.currentPlayer)
             if site is not None:
                 site.onEndOfTurn(self, self.currentPlayer)
@@ -98,7 +97,6 @@ class Match(QtCore.QObject):
             curCoord = self.playerPath.pop()
             while not self.map.isSafeSpace(curCoord, self.currentPlayer):
                 curCoord = self.playerPath.pop()
-                print("unsafe")
                 self.currentPlayer.addWounds(1)
             self.map.movePerson(self.currentPlayer, curCoord)
 

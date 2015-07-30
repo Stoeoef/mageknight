@@ -98,13 +98,11 @@ class Map(basemap.Map):
         """Return whether a space is considered to be a "safe space". Players must end their turn on a
         safe space."""
         terrain = self.terrainAt(coords)
-        print("terrain: ", terrain)
         if terrain in [Terrain.lake, Terrain.mountain]:
             return False
         site = self.siteAt(coords)
         if site is not None:
             if isinstance(site, sites.FortifiedSite):
-                print("owner: ", site.owner)
                 if site.owner is None or (isinstance(site, Keep) and site.owner != player):
                     return False
         for otherPlayer in self.match.players:

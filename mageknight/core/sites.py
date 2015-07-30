@@ -75,7 +75,6 @@ class FortifiedSite(SiteOnMap):
             match.map.revealEnemies(self)
             
     def onCombatEnd(self, match, player):
-        print("onCombatEnd")
         if len(self.enemies) == 0:
             match.map.setOwner(self, player)
     
