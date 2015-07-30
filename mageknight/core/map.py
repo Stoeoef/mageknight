@@ -93,7 +93,27 @@ class Map(basemap.Map):
         as an effect of e.g. spells."""
         assert isinstance(terrain, Terrain)
         return self.modifiedTerrainCosts(terrain) != None
-        
+    
+    def isSafeSpace(self, coords, player):
+        """Return whether a space is considered to be a "safe space". Players must end their turn on a
+        safe space."""
+        terrain = self.terrainAt(coords)
+        print("terrain: ", terrain)
+        if terrain in [Terrain.lake, Terrain.mountain,
+                       Terrain.forest]: # TODO: Remove
+            return False
+        site = self.siteAt(coords)
+        if site is not None:
+            if isinstance(site, sites.FortifiedSite):
+                print("owner: ", site.owner)
+                if site.owner is None or (isinstance(site, Keep) and site.owner != player):
+                    return False
+        for otherPlayer in self.match.players:
+            if otherPlayer != player and self.persons[otherPlayer] == coords:
+                if site not in [Site.portal, Site.city]:
+                    return False
+        return True
+
     def reduceTerrainCost(self, terrain, amount, minimum):
         """Reduce cost of *terrain* by *amount*, to a minimum of *minimum*."""
         self.match.effects.add(TerrainCostsOverwrite.reduceCosts(terrain, amount, minimum))

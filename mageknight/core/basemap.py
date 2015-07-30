@@ -129,8 +129,10 @@ class Map(QtCore.QObject):
     
     def movePerson(self, person, coords):
         assert person in self.persons
-        self.match.stack.push(stack.Call(self._movePerson, person, coords),
-                              stack.Call(self._movePerson, person, self.persons[person]))
+        if self.persons[person] != coords:
+            self.match.stack.push(stack.Call(self._movePerson, person, coords),
+                                  stack.Call(self._movePerson, 
+                                             person, self.persons[person]))
         
     def _movePerson(self, person, coords):
         """Move the given person to the specified hex."""
@@ -157,20 +159,6 @@ class Map(QtCore.QObject):
     def _setOwner(self, site, player):
         site.owner = player
         self.siteChanged.emit(site.coords)
-        
-    def setTerrainCost(self, terrain, cost):
-        """Set the movement cost of the given terrain to *cost*. If *cost* is None, the terrain will not
-        be passable."""
-        self.match.stack.push(stack.Call(self._setTerrainCost, terrain, cost),
-                              stack.Call(self._setTerrainCost, terrain, self.terrainCosts.get(terrain)))
-        
-    def _setTerrainCost(self, terrain, cost):
-        if cost is not None:
-            self.terrainCosts[terrain] = cost
-        elif terrain in self.terrainCosts:
-            del self.terrainCosts[terrain]
-        self.terrainCostsChanged.emit()
-        
         
 def isTileCenter(coords):
     """Return whether *coords* are the coordinates of the center hex of a tile."""

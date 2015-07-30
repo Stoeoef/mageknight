@@ -78,6 +78,7 @@ class Match(QtCore.QObject):
                     
     def beginTurn(self):
         self.setState(State.movement)
+        self.playerPath = [self.map.persons[self.currentPlayer]]
         site = self.map.siteAtPlayer(self.currentPlayer)
         if site is not None:
             site.onBeginOfTurn(self, self.currentPlayer)
@@ -86,10 +87,21 @@ class Match(QtCore.QObject):
         
     def endTurn(self):
         if self.state is not State.endOfTurn:
-            # Start end of turn sequence
+
+            print("call")
             site = self.map.siteAtPlayer(self.currentPlayer)
             if site is not None:
                 site.onEndOfTurn(self, self.currentPlayer)
+
+            # Start end of turn sequence
+            # Forced withdrawal
+            curCoord = self.playerPath.pop()
+            while not self.map.isSafeSpace(curCoord, self.currentPlayer):
+                curCoord = self.playerPath.pop()
+                print("unsafe")
+                self.currentPlayer.addWounds(1)
+            self.map.movePerson(self.currentPlayer, curCoord)
+
             # TODO: combat reward, level-up, etc.
             self.effects.clear()
             
@@ -308,7 +320,9 @@ class Match(QtCore.QObject):
         
         self.payMovePoints(self.map.modifiedTerrainCosts(terrain))
         self.map.movePerson(player, coords)
-        
+        self.stack.push(stack.Call(self.playerPath.append, coords),
+                        stack.Call(self.playerPath.pop))
+
         # Site
         site = self.map.siteAt(coords) # returns only active sites
         if site is not None:
