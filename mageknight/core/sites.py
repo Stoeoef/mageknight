@@ -79,6 +79,7 @@ class FortifiedSite(SiteOnMap):
             match.map.setOwner(self, player)
         else:
             match.withdrawCurrentPlayer()
+            match.doForcedWithdrawal()
     
     
 class AdventureSite(SiteOnMap):

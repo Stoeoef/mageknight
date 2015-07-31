@@ -88,16 +88,13 @@ class Match(QtCore.QObject):
     def endTurn(self):
         if self.state is not State.endOfTurn:
 
+            # Start end of turn sequence
+            self.doForcedWithdrawal()
             site = self.map.siteAtPlayer(self.currentPlayer)
             if site is not None:
                 site.onEndOfTurn(self, self.currentPlayer)
 
-            # Start end of turn sequence
-            # Forced withdrawal
-            while not self.map.isSafeSpace(self.map.persons[self.currentPlayer],
-                                           self.currentPlayer):
-                self.withdrawCurrentPlayer()
-                self.currentPlayer.addWounds(1)
+        
 
             # TODO: combat reward, level-up, etc.
             self.effects.clear()
@@ -110,7 +107,14 @@ class Match(QtCore.QObject):
             # Really end turn
             self.currentPlayer.drawCards()
             self.beginTurn()
-    
+
+    def doForcedWithdrawal(self):
+        while not self.map.isSafeSpace(self.map.persons[self.currentPlayer],
+                                       self.currentPlayer):
+            self.withdrawCurrentPlayer()
+            self.currentPlayer.addWounds(1)
+
+        
     def withdrawCurrentPlayer(self):
         self.playerPath.pop()
         self.map.movePerson(self.currentPlayer, self.playerPath[-1])
