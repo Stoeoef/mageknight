@@ -77,6 +77,8 @@ class FortifiedSite(SiteOnMap):
     def onCombatEnd(self, match, player):
         if len(self.enemies) == 0:
             match.map.setOwner(self, player)
+        else:
+            match.withdrawCurrentPlayer()
     
     
 class AdventureSite(SiteOnMap):
